@@ -1,0 +1,126 @@
+# =============================================================================
+# CONFIGURATION RENDER - Backend SAR
+# =============================================================================
+# Fichier de configuration pour le déploiement automatique sur Render
+
+services:
+  # Service Backend Django
+  - type: web
+    name: sar-backend
+    env: python
+    plan: free  # Commencer avec le plan gratuit
+    buildCommand: |
+      echo "🔨 Installation des dépendances..."
+      pip install -r requirements_render.txt
+      echo "✅ Dépendances installées"
+    startCommand: |
+      chmod +x entrypoint_render.sh
+      ./entrypoint_render.sh
+    healthCheckPath: /api/health/
+    envVars:
+      # Configuration Django
+      - key: DJANGO_SETTINGS_MODULE
+        value: master.settings_production
+      - key: DEBUG
+        value: False
+      - key: SECRET_KEY
+        generateValue: true
+      
+      # Configuration de base de données (Render PostgreSQL)
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: sar-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: sar-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: sar-db
+          property: password
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: sar-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: sar-db
+          property: port
+      
+      # Configuration CORS
+      - key: FRONTEND_URL
+        value: https://votre-frontend.onrender.com
+      
+      # Configuration OAuth Google
+      - key: GOOGLE_OAUTH2_CLIENT_ID
+        value: votre-client-id-google
+      - key: GOOGLE_OAUTH2_CLIENT_SECRET
+        value: votre-client-secret-google
+      
+      # Configuration Claude API
+      - key: CLAUDE_API_KEY
+        value: votre-claude-api-key
+      
+      # Configuration des workers
+      - key: WORKERS
+        value: 2
+
+  # Base de données PostgreSQL
+  - type: pserv
+    name: sar-db
+    env: postgresql
+    plan: free  # Commencer avec le plan gratuit
+    postgresMajorVersion: 15
+    initCommands:
+      - |
+        -- Activer l'extension pgvector pour le RAG
+        CREATE EXTENSION IF NOT EXISTS vector;
+        
+        -- Créer un index pour les performances
+        -- (sera créé automatiquement par Django)
+        
+        -- Configuration des paramètres de performance
+        ALTER SYSTEM SET shared_preload_libraries = 'vector';
+        ALTER SYSTEM SET max_connections = 100;
+        ALTER SYSTEM SET shared_buffers = '128MB';
+        ALTER SYSTEM SET effective_cache_size = '256MB';
+        ALTER SYSTEM SET maintenance_work_mem = '64MB';
+        ALTER SYSTEM SET checkpoint_completion_target = 0.9;
+        ALTER SYSTEM SET wal_buffers = '4MB';
+        ALTER SYSTEM SET default_statistics_target = 100;
+        
+        -- Recharger la configuration
+        SELECT pg_reload_conf();
+
+# =============================================================================
+# NOTES DE CONFIGURATION
+# =============================================================================
+# 
+# 1. PLAN GRATUIT:
+#    - Backend: 512MB RAM, 0.1 CPU
+#    - Base de données: 1GB stockage, 0.1 CPU
+#    - Limitations: Sleep après 15min d'inactivité
+# 
+# 2. VARIABLES D'ENVIRONNEMENT REQUISES:
+#    - SECRET_KEY: Générée automatiquement par Render
+#    - POSTGRES_*: Configurées automatiquement via la base de données
+#    - GOOGLE_OAUTH2_*: À configurer manuellement
+#    - CLAUDE_API_KEY: À configurer manuellement
+#    - FRONTEND_URL: À configurer avec l'URL de votre frontend
+# 
+# 3. UPGRADE RECOMMANDÉ:
+#    - Pour la production, considérer un plan payant
+#    - Plus de RAM et CPU pour les opérations ML
+#    - Pas de sleep automatique
+#    - Meilleures performances
+# 
+# 4. SÉCURITÉ:
+#    - HTTPS activé automatiquement
+#    - Variables sensibles protégées
+#    - CORS configuré pour le frontend
+# 
+# 5. MONITORING:
+#    - Logs disponibles dans le dashboard Render
+#    - Métriques de performance
+#    - Health checks automatiques
