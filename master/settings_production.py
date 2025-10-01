@@ -252,8 +252,8 @@ def validate_production_config():
     if DEBUG:
         errors.append("DEBUG doit être False en production")
     
-    if not SECRET_KEY or SECRET_KEY == 'django-insecure-sbgp$-92156s&no3gayf7b46=aaif8e%+(z**n6nn1mt+5tl&':
-        errors.append("SECRET_KEY doit être définie et sécurisée")
+    if not SECRET_KEY or len(SECRET_KEY) < 50:
+        errors.append("SECRET_KEY doit être définie et sécurisée (minimum 50 caractères)")
     
     if not ALLOWED_HOSTS:
         errors.append("ALLOWED_HOSTS doit contenir au moins un host")
