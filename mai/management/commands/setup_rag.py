@@ -34,8 +34,8 @@ class Command(BaseCommand):
             dataset_path = os.path.join(settings.BASE_DIR, 'data', 'sar_official_dataset.csv')
             if not os.path.exists(dataset_path):
                 self.stdout.write(
-                    self.style.WARNING(f'Dataset non trouvé: {dataset_path}')
-                    'Création d\'un dataset minimal...'
+                    self.style.WARNING(f'Dataset non trouvé: {dataset_path}') +
+                    '\nCréation d\'un dataset minimal...'
                 )
                 self._create_minimal_dataset(dataset_path)
             
