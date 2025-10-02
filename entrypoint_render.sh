@@ -97,7 +97,7 @@ echo "🌐 Démarrage du serveur sur le port ${PORT:-8000}"
 # Démarrer Gunicorn avec la configuration optimisée pour Render
 exec gunicorn master.wsgi:application \
     --bind 0.0.0.0:${PORT:-8000} \
-    --workers ${WORKERS:-2} \
+    --workers ${WORKERS:-4} \
     --worker-class sync \
     --worker-connections 1000 \
     --max-requests 1000 \

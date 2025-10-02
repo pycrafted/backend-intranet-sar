@@ -63,7 +63,7 @@ class Employee(models.Model):
     user_account = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Compte utilisateur")
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Photo de profil")
     is_active = models.BooleanField(default=True, verbose_name="Actif")
-    hire_date = models.DateField(default=timezone.now().date, verbose_name="Date d'embauche")
+    hire_date = models.DateField(default=timezone.now, verbose_name="Date d'embauche")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Date de modification")
     
