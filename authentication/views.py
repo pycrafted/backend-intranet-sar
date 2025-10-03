@@ -48,11 +48,19 @@ class UserLoginView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
+        print(f"🔍 [LOGIN] Requête de connexion reçue")
+        print(f"🔍 [LOGIN] Headers: {dict(request.headers)}")
+        print(f"🔍 [LOGIN] Données: {request.data}")
+        print(f"🔍 [LOGIN] Session avant: {dict(request.session)}")
+        
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
+            print(f"✅ [LOGIN] Utilisateur trouvé: {user.email}")
             # Spécifier le backend d'authentification pour éviter l'erreur
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            print(f"✅ [LOGIN] Utilisateur connecté: {request.user.is_authenticated}")
+            print(f"✅ [LOGIN] Session après: {dict(request.session)}")
             
             # Générer automatiquement les tokens Google OAuth si l'utilisateur n'en a pas
             google_tokens_generated = False
@@ -231,13 +239,22 @@ class CurrentUserView(generics.RetrieveUpdateAPIView):
         """
         Récupérer les informations de l'utilisateur actuel
         """
+        print(f"🔍 [CURRENT_USER] Requête reçue - Méthode: {request.method}")
+        print(f"🔍 [CURRENT_USER] Headers: {dict(request.headers)}")
+        print(f"🔍 [CURRENT_USER] Utilisateur authentifié: {request.user.is_authenticated}")
+        print(f"🔍 [CURRENT_USER] Utilisateur: {request.user}")
+        print(f"🔍 [CURRENT_USER] Session: {dict(request.session)}")
+        
         if not request.user.is_authenticated:
+            print("❌ [CURRENT_USER] Utilisateur non authentifié")
             return Response({
                 'error': 'Non authentifié',
                 'message': 'Aucun utilisateur connecté'
             }, status=401)
         
+        print(f"✅ [CURRENT_USER] Utilisateur authentifié: {request.user.email}")
         serializer = self.get_serializer(request.user)
+        print(f"✅ [CURRENT_USER] Données sérialisées: {serializer.data}")
         return Response(serializer.data)
 
 
@@ -328,8 +345,14 @@ def get_csrf_token(request):
     """
     API endpoint pour récupérer le token CSRF
     """
+    print(f"🔍 [CSRF] Requête CSRF reçue")
+    print(f"🔍 [CSRF] Headers: {dict(request.headers)}")
+    print(f"🔍 [CSRF] Session: {dict(request.session)}")
+    
     from django.middleware.csrf import get_token
     token = get_token(request)
+    print(f"✅ [CSRF] Token généré: {token[:20]}...")
+    
     return Response({'csrfToken': token})
 
 

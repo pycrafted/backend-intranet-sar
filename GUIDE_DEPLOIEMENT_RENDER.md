@@ -288,3 +288,5 @@ python test_render_config.py
 - [ ] Monitoring configuré
 
 **🎉 Félicitations! Votre backend SAR est déployé sur Render!**
+
+

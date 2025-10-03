@@ -82,7 +82,9 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 CORS_ALLOWED_ORIGINS = [
     FRONTEND_URL,
     "http://localhost:3000",  # Fallback pour le développement
-    "https://frontend-intranet-ndpvti2al-abdoulaye-lahs-projects.vercel.app",  # URL Vercel actuelle
+    "https://frontend-intranet-ndpvti2al-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 1
+    "https://frontend-intranet-jjg1gmzmr-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 2
+    "https://frontend-intranet-h6yicbrwg-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 3 (actuelle)
     "https://frontend-intranet-sar.vercel.app",  # URL Vercel de base
 ]
 

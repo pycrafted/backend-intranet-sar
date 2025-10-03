@@ -13,3 +13,5 @@ class HealthCheck(models.Model):
     
     class Meta:
         ordering = ['-timestamp']
+
+
