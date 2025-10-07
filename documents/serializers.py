@@ -228,12 +228,8 @@ class DocumentSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """Création d'un nouveau document"""
-        print(f"🔍 [SERIALIZER_CREATE] Données validées: {validated_data}")
-        print(f"🔍 [SERIALIZER_CREATE] Utilisateur: {self.context['request'].user}")
-        
         # L'utilisateur et file_size sont déjà ajoutés dans la vue
         document = super().create(validated_data)
-        print(f"✅ [SERIALIZER_CREATE] Document créé: {document.id}")
         return document
 
 class DocumentListSerializer(serializers.ModelSerializer):
@@ -280,19 +276,23 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
         fields = ['title', 'description', 'file', 'category', 'folder']
     
     def validate_file(self, value):
-        """Validation stricte pour l'upload"""
+        """Validation pour l'upload"""
         if not value:
             raise serializers.ValidationError("Aucun fichier fourni")
         
-        # Vérifier que c'est un PDF
-        if not value.name.lower().endswith('.pdf'):
-            raise serializers.ValidationError("Seuls les fichiers PDF sont autorisés")
-        
         # Vérifier la taille
-        max_size = 10 * 1024 * 1024  # 10MB
+        max_size = 50 * 1024 * 1024  # 50MB (augmenté pour les fichiers Office)
         if value.size > max_size:
             raise serializers.ValidationError(
                 f"Le fichier est trop volumineux. Taille maximale: {max_size / (1024*1024):.1f}MB"
             )
         
+        # Accepter plusieurs types de fichiers
+        allowed_extensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv']
+        file_extension = '.' + value.name.split('.')[-1].lower() if '.' in value.name else ''
+        
+        if file_extension not in allowed_extensions:
+            raise serializers.ValidationError(
+                f"Type de fichier non autorisé. Extensions acceptées: {', '.join(allowed_extensions)}"
+            )
         return value

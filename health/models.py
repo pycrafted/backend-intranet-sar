@@ -15,3 +15,4 @@ class HealthCheck(models.Model):
         ordering = ['-timestamp']
 
 
+
