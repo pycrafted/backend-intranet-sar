@@ -42,47 +42,54 @@ class UserRegisterView(generics.CreateAPIView):
 
 class UserLoginView(APIView):
     """
-    TEMPORAIREMENT : API endpoint désactivé - Mode démo activé
+    API endpoint pour la connexion d'un utilisateur
+    Génère automatiquement les tokens Google OAuth si l'utilisateur n'en a pas
     """
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        # TEMPORAIREMENT : Retourner un utilisateur de démo
-        print(f"🔍 [LOGIN] Mode démo activé - Connexion désactivée")
+        print(f"🔍 [LOGIN] Requête de connexion reçue")
+        print(f"🔍 [LOGIN] Headers: {dict(request.headers)}")
+        print(f"🔍 [LOGIN] Données: {request.data}")
+        print(f"🔍 [LOGIN] Session avant: {dict(request.session)}")
         
-        # Créer un utilisateur de démo
-        demo_user = {
-            'id': 1,
-            'username': 'demo',
-            'email': 'demo@sar.sn',
-            'first_name': 'Utilisateur',
-            'last_name': 'Démo',
-            'full_name': 'Utilisateur Démo',
-            'avatar': '',
-            'avatar_url': '',
-            'phone_number': '+221 33 123 45 67',
-            'office_phone': '+221 33 123 45 68',
-            'position': 'Employé',
-            'department': 'IT',
-            'matricule': 'SAR001',
-            'manager': None,
-            'manager_info': None,
-            'is_active': True,
-            'is_staff': True,
-            'is_superuser': True,
-            'last_login': '2025-01-07T17:00:00Z',
-            'created_at': '2025-01-01T00:00:00Z',
-            'updated_at': '2025-01-07T17:00:00Z',
-            'google_id': None,
-            'google_email': None,
-            'google_avatar_url': None,
-            'is_google_connected': False
-        }
-        
-        return Response({
-            'message': 'Mode démo activé - Connexion désactivée',
-            'user': demo_user
-        }, status=status.HTTP_200_OK)
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            print(f"✅ [LOGIN] Utilisateur trouvé: {user.email}")
+            # Spécifier le backend d'authentification pour éviter l'erreur
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            print(f"✅ [LOGIN] Utilisateur connecté: {request.user.is_authenticated}")
+            print(f"✅ [LOGIN] Session après: {dict(request.session)}")
+            
+            # Générer automatiquement les tokens Google OAuth si l'utilisateur n'en a pas
+            google_tokens_generated = False
+            if not user.is_google_connected():
+                try:
+                    # Tenter une connexion Google automatique
+                    google_tokens_generated = self._auto_connect_google(user, request)
+                except Exception as e:
+                    print(f"⚠️ Erreur lors de la connexion Google automatique: {e}")
+                    # Ne pas faire échouer la connexion si Google OAuth échoue
+            
+            response_data = {
+                'message': 'Connexion réussie',
+                'user': UserSerializer(user).data,
+                'google_tokens_generated': google_tokens_generated
+            }
+            
+            if google_tokens_generated and isinstance(google_tokens_generated, dict):
+                if google_tokens_generated.get('success'):
+                    response_data['google_auth_url'] = google_tokens_generated.get('auth_url')
+                    response_data['message'] += ' - Connexion Google automatique initiée'
+                else:
+                    response_data['message'] += ' - Erreur lors de la connexion Google automatique'
+            elif google_tokens_generated:
+                response_data['message'] += ' - Tokens Google générés automatiquement'
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def _auto_connect_google(self, user, request):
         """
@@ -213,41 +220,15 @@ class UserLogoutView(APIView):
 
 class CurrentUserView(generics.RetrieveUpdateAPIView):
     """
-    TEMPORAIREMENT : API endpoint désactivé - Mode démo activé
+    API endpoint pour récupérer et mettre à jour le profil de l'utilisateur actuel
     """
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
 
     def get_object(self):
-        # TEMPORAIREMENT : Retourner un utilisateur de démo
-        demo_user = {
-            'id': 1,
-            'username': 'demo',
-            'email': 'demo@sar.sn',
-            'first_name': 'Utilisateur',
-            'last_name': 'Démo',
-            'full_name': 'Utilisateur Démo',
-            'avatar': '',
-            'avatar_url': '',
-            'phone_number': '+221 33 123 45 67',
-            'office_phone': '+221 33 123 45 68',
-            'position': 'Employé',
-            'department': 'IT',
-            'matricule': 'SAR001',
-            'manager': None,
-            'manager_info': None,
-            'is_active': True,
-            'is_staff': True,
-            'is_superuser': True,
-            'last_login': '2025-01-07T17:00:00Z',
-            'created_at': '2025-01-01T00:00:00Z',
-            'updated_at': '2025-01-07T17:00:00Z',
-            'google_id': None,
-            'google_email': None,
-            'google_avatar_url': None,
-            'is_google_connected': False
-        }
-        return demo_user
+        if not self.request.user.is_authenticated:
+            raise PermissionDenied("Utilisateur non authentifié")
+        return self.request.user
 
     def get_serializer_class(self):
         if self.request.method == 'PUT' or self.request.method == 'PATCH':
