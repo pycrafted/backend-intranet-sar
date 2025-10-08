@@ -6,10 +6,10 @@ import mimetypes
 import logging
 from django.http import HttpResponse, Http404
 from django.conf import settings
-from django.views.decorators.cors import cors_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
+from corsheaders.decorators import cors_exempt
 
 # Configuration du logger
 logger = logging.getLogger(__name__)
