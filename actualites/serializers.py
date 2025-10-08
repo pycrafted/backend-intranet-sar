@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from django.db import models
+from django.conf import settings
+import logging
 from .models import Article
+
+# Configuration du logger
+logger = logging.getLogger(__name__)
 
 
 class ArticleSerializer(serializers.ModelSerializer):
@@ -23,40 +28,56 @@ class ArticleSerializer(serializers.ModelSerializer):
         if obj.author_avatar:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.author_avatar.url)
+                url = request.build_absolute_uri(obj.author_avatar.url)
+                logger.info(f"🖼️ [SERIALIZER] Avatar URL générée: {url}")
+                return url
             # En cas d'absence de request, construire l'URL manuellement
-            from django.conf import settings
-            return f"http://localhost:8000{settings.MEDIA_URL}{obj.author_avatar.name}"
+            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+            url = f"{base_url}{settings.MEDIA_URL}{obj.author_avatar.name}"
+            logger.info(f"🖼️ [SERIALIZER] Avatar URL fallback: {url}")
+            return url
         return None
     
     def get_image_url(self, obj):
         if obj.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
+                url = request.build_absolute_uri(obj.image.url)
+                logger.info(f"🖼️ [SERIALIZER] Image URL générée: {url}")
+                return url
             # En cas d'absence de request, construire l'URL manuellement
-            from django.conf import settings
-            return f"http://localhost:8000{settings.MEDIA_URL}{obj.image.name}"
+            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+            url = f"{base_url}{settings.MEDIA_URL}{obj.image.name}"
+            logger.info(f"🖼️ [SERIALIZER] Image URL fallback: {url}")
+            return url
         return None
     
     def get_video_url(self, obj):
         if obj.video:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.video.url)
+                url = request.build_absolute_uri(obj.video.url)
+                logger.info(f"🎥 [SERIALIZER] Video URL générée: {url}")
+                return url
             # En cas d'absence de request, construire l'URL manuellement
-            from django.conf import settings
-            return f"http://localhost:8000{settings.MEDIA_URL}{obj.video.name}"
+            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+            url = f"{base_url}{settings.MEDIA_URL}{obj.video.name}"
+            logger.info(f"🎥 [SERIALIZER] Video URL fallback: {url}")
+            return url
         return None
     
     def get_video_poster_url(self, obj):
         if obj.video_poster:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.video_poster.url)
+                url = request.build_absolute_uri(obj.video_poster.url)
+                logger.info(f"🎬 [SERIALIZER] Video Poster URL générée: {url}")
+                return url
             # En cas d'absence de request, construire l'URL manuellement
-            from django.conf import settings
-            return f"http://localhost:8000{settings.MEDIA_URL}{obj.video_poster.name}"
+            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+            url = f"{base_url}{settings.MEDIA_URL}{obj.video_poster.name}"
+            logger.info(f"🎬 [SERIALIZER] Video Poster URL fallback: {url}")
+            return url
         return None
 
 

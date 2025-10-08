@@ -1,7 +1,7 @@
 from rest_framework import generics, status, filters
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
@@ -281,7 +281,7 @@ class AnnuaireUserListView(generics.ListAPIView):
     Retourne tous les utilisateurs actifs avec leurs informations complètes
     """
     serializer_class = UserAnnuaireSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # AUTHENTIFICATION DÉSACTIVÉE
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['first_name', 'last_name', 'email', 'matricule', 'position', 'department']
     filterset_fields = ['department', 'is_staff', 'is_superuser', 'is_active']

@@ -395,3 +395,4 @@ class EventListSerializer(serializers.ModelSerializer):
         if obj.time:
             return obj.time.strftime('%H:%M')
         return None
+

@@ -1,6 +1,6 @@
 from rest_framework import generics, status, serializers
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.http import HttpResponse, Http404
@@ -123,14 +123,14 @@ class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un document
     """
-    permission_classes = [IsAuthenticated]  # Authentification requise
+    permission_classes = [AllowAny]  # AUTHENTIFICATION DÉSACTIVÉE
     serializer_class = DocumentSerializer
     
     def get_queryset(self):
         return Document.objects.filter(is_active=True)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_download(request, pk):
     """
     Télécharger un document PDF
@@ -164,7 +164,7 @@ def document_download(request, pk):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_view(request, pk):
     """
     Visualiser un document PDF dans le navigateur
@@ -202,7 +202,7 @@ def document_view(request, pk):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_stats(request):
     """
     Statistiques des documents
@@ -234,7 +234,7 @@ def document_stats(request):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_categories(request):
     """
     Liste des catégories de documents
@@ -250,7 +250,7 @@ def document_categories(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_bulk_delete(request):
     """
     Supprimer plusieurs documents en lot
@@ -289,7 +289,7 @@ class DocumentFolderListCreateView(generics.ListCreateAPIView):
     GET: Liste tous les dossiers actifs
     POST: Créer un nouveau dossier
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # AUTHENTIFICATION DÉSACTIVÉE
     serializer_class = DocumentFolderSerializer
     
     def get_queryset(self):
@@ -314,14 +314,14 @@ class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un dossier
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # AUTHENTIFICATION DÉSACTIVÉE
     serializer_class = DocumentFolderSerializer
     
     def get_queryset(self):
         return DocumentFolder.objects.filter(is_active=True)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_folders_tree(request):
     """
     Retourne l'arbre complet des dossiers
@@ -343,7 +343,7 @@ def document_folders_tree(request):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # AUTHENTIFICATION DÉSACTIVÉE
 def document_folders_stats(request):
     """
     Statistiques des dossiers

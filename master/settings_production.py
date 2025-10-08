@@ -84,7 +84,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Fallback pour le développement
     "https://frontend-intranet-ndpvti2al-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 1
     "https://frontend-intranet-jjg1gmzmr-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 2
-    "https://frontend-intranet-h6yicbrwg-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 3 (actuelle)
+    "https://frontend-intranet-h6yicbrwg-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 3
+    "https://frontend-intranet-8fufyhe3w-abdoulaye-lahs-projects.vercel.app",  # URL Vercel actuelle
     "https://frontend-intranet-sar.vercel.app",  # URL Vercel de base
 ]
 
@@ -243,6 +244,9 @@ if not CLAUDE_API_KEY:
 # =============================================================================
 # RENDER SPECIFIC - Configuration spécifique à Render
 # =============================================================================
+
+# URL de base pour les médias
+BASE_URL = config('BASE_URL', default='https://backend-intranet-sar-1.onrender.com')
 
 # Port pour Render (fourni via la variable d'environnement PORT)
 PORT = config('PORT', default='8000', cast=int)

@@ -684,3 +684,4 @@ def event_stats(request):
             {'error': f'Erreur lors de la récupération des statistiques: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+

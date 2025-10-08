@@ -4,8 +4,12 @@ from rest_framework.response import Response
 from django.db.models import Q, Count
 from django.db import models
 from django.utils import timezone
+import logging
 from .models import Article
 from .serializers import ArticleSerializer, ArticleCreateSerializer
+
+# Configuration du logger
+logger = logging.getLogger(__name__)
 
 
 class ArticleListAPIView(generics.ListAPIView):
@@ -21,6 +25,10 @@ class ArticleListAPIView(generics.ListAPIView):
     
     def get_queryset(self):
         queryset = Article.objects.all()
+        
+        # Log de débogage pour les requêtes d'articles
+        logger.info(f"🔍 [ARTICLES_API] Requête articles - Origin: {self.request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"🔍 [ARTICLES_API] Headers: {dict(self.request.META)}")
         
         # Filtrage par type
         article_type = self.request.query_params.get('type', None)
