@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .media_views import MediaView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,6 +31,8 @@ urlpatterns = [
     path('api/documents/', include('documents.urls')),
     # URLs d'authentification sociale (OAuth 2.0)
     path('accounts/', include('allauth.urls')),
+    # URL pour servir les fichiers média avec CORS
+    path('media/<path:path>', MediaView.as_view(), name='media'),
 ]
 
 # Servir les fichiers média en développement
