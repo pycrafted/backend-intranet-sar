@@ -9,13 +9,11 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
-from corsheaders.decorators import cors_exempt
 
 # Configuration du logger
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(cors_exempt, name='dispatch')
 class MediaView(View):
     """
     Vue pour servir les fichiers média avec les headers CORS appropriés

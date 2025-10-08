@@ -27,14 +27,14 @@ class MAIService:
                         'answer': row['answer'].strip()
                     })
             
-            print(f"✅ [MAI] Dataset chargé: {len(qa_pairs)} questions-réponses")
+            print(f"[MAI] Dataset charge: {len(qa_pairs)} questions-reponses")
             return qa_pairs
             
         except FileNotFoundError:
-            print(f"❌ [MAI] Fichier dataset non trouvé: {self.dataset_path}")
+            print(f"[MAI] Fichier dataset non trouve: {self.dataset_path}")
             return []
         except Exception as e:
-            print(f"❌ [MAI] Erreur lors du chargement du dataset: {e}")
+            print(f"[MAI] Erreur lors du chargement du dataset: {e}")
             return []
     
     def _normalize_text(self, text: str) -> str:
