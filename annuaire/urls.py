@@ -8,22 +8,11 @@ urlpatterns = [
     path('departments/', views.DepartmentListCreateView.as_view(), name='department-list'),
     path('departments/<int:pk>/', views.DepartmentDetailView.as_view(), name='department-detail'),
     
-    # Postes
-    path('positions/', views.PositionListCreateView.as_view(), name='position-list'),
-    path('positions/<int:pk>/', views.PositionDetailView.as_view(), name='position-detail'),
-    
     # Employés
     path('employees/', views.EmployeeListCreateView.as_view(), name='employee-list'),
     path('employees/<int:pk>/', views.EmployeeDetailView.as_view(), name='employee-detail'),
     path('employees/search/', views.employee_search, name='employee-search'),
-    path('employees/<int:employee_id>/subordinates/', views.employee_subordinates, name='employee-subordinates'),
-    path('employees/<int:employee_id>/management-chain/', views.employee_management_chain, name='employee-management-chain'),
     
-    # Organigrammes
-    path('org-charts/', views.OrganizationalChartView.as_view(), name='org-chart-list'),
-    path('org-charts/hierarchy/', views.org_chart_hierarchy, name='org-chart-hierarchy'),
-    path('org-charts/by-department/', views.org_chart_by_department, name='org-chart-by-department'),
-    path('org-charts/data/', views.org_chart_data, name='org-chart-data'),
     
     # Statistiques
     path('statistics/departments/', views.department_statistics, name='department-statistics'),

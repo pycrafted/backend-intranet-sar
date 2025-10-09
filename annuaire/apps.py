@@ -6,4 +6,4 @@ class AnnuaireConfig(AppConfig):
     name = 'annuaire'
     
     def ready(self):
-        import annuaire.signals
+        pass

@@ -175,7 +175,7 @@ class UserAdmin(BaseUserAdmin):
         return readonly_fields
 
 
-# Configuration du site admin
-admin.site.site_header = "Administration SAR Intranet"
-admin.site.site_title = "SAR Admin"
-admin.site.index_title = "Tableau de bord d'administration"
+# Configuration du site admin - Laissé à l'app annuaire pour éviter les conflits
+# admin.site.site_header = "Administration SAR Intranet"
+# admin.site.site_title = "SAR Admin"
+# admin.site.index_title = "Tableau de bord d'administration"

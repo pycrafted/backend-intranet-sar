@@ -5,12 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
-from .models import Department, Position, Employee, OrganizationalChart
+from .models import Department, Employee
 from .serializers import (
-    DepartmentSerializer, PositionSerializer, EmployeeListSerializer,
+    DepartmentSerializer, EmployeeListSerializer,
     EmployeeDetailSerializer, EmployeeHierarchySerializer,
-    DepartmentHierarchySerializer, OrganizationalChartSerializer,
-    UserAnnuaireSerializer
+    DepartmentHierarchySerializer, UserAnnuaireSerializer
 )
 
 User = get_user_model()
@@ -32,78 +31,22 @@ class DepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = DepartmentSerializer
 
 
-class PositionListCreateView(generics.ListCreateAPIView):
-    """Liste et création des postes"""
-    queryset = Position.objects.select_related('department').all()
-    serializer_class = PositionSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['department', 'level', 'is_management']
-    search_fields = ['title', 'description']
-    ordering_fields = ['title', 'level']
-    ordering = ['level', 'title']
-
-
-class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Détail, modification et suppression d'un poste"""
-    queryset = Position.objects.select_related('department').all()
-    serializer_class = PositionSerializer
-
-
 class EmployeeListCreateView(generics.ListCreateAPIView):
     """Liste et création des employés"""
-    queryset = Employee.objects.select_related('position', 'position__department', 'manager').filter(is_active=True)
+    queryset = Employee.objects.select_related('department')
     serializer_class = EmployeeListSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['position__department', 'position__level', 'is_active', 'work_schedule']
-    search_fields = ['first_name', 'last_name', 'email', 'employee_id', 'position__title']
-    ordering_fields = ['last_name', 'first_name', 'hire_date', 'position__level']
+    filterset_fields = ['department']
+    search_fields = ['first_name', 'last_name', 'email', 'employee_id', 'position_title']
+    ordering_fields = ['last_name', 'first_name']
     ordering = ['last_name', 'first_name']
 
 
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Détail, modification et suppression d'un employé"""
-    queryset = Employee.objects.select_related('position', 'position__department', 'manager').all()
+    queryset = Employee.objects.select_related('department').all()
     serializer_class = EmployeeDetailSerializer
 
-
-class OrganizationalChartView(generics.ListCreateAPIView):
-    """Liste et création des organigrammes"""
-    queryset = OrganizationalChart.objects.filter(is_active=True)
-    serializer_class = OrganizationalChartSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['name', 'created_at']
-    ordering = ['-created_at']
-
-
-@api_view(['GET'])
-def org_chart_hierarchy(request):
-    """Retourne l'organigramme hiérarchique complet"""
-    # Trouver le CEO (employé sans manager)
-    ceo = Employee.objects.filter(
-        manager__isnull=True,
-        is_active=True
-    ).select_related('position', 'position__department').first()
-    
-    if not ceo:
-        return Response(
-            {'error': 'Aucun directeur général trouvé'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
-    serializer = EmployeeHierarchySerializer(ceo)
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-def org_chart_by_department(request):
-    """Retourne l'organigramme organisé par département"""
-    departments = Department.objects.prefetch_related(
-        'positions__employees'
-    ).all()
-    
-    serializer = DepartmentHierarchySerializer(departments, many=True)
-    return Response(serializer.data)
 
 
 @api_view(['GET'])
@@ -112,11 +55,9 @@ def employee_search(request):
     query = request.GET.get('q', '')
     department = request.GET.get('department', '')
     level = request.GET.get('level', '')
-    is_manager = request.GET.get('is_manager', '')
-    
     queryset = Employee.objects.select_related(
-        'position', 'position__department', 'manager'
-    ).filter(is_active=True)
+        'department'
+    )
     
     if query:
         queryset = queryset.filter(
@@ -124,102 +65,40 @@ def employee_search(request):
             Q(last_name__icontains=query) |
             Q(email__icontains=query) |
             Q(employee_id__icontains=query) |
-            Q(position__title__icontains=query)
+            Q(position_title__icontains=query) |
+            Q(phone_fixed__icontains=query) |
+            Q(phone_mobile__icontains=query) |
+            Q(department__name__icontains=query)
         )
     
     if department:
-        queryset = queryset.filter(position__department__id=department)
+        queryset = queryset.filter(department__id=department)
     
-    if level:
-        queryset = queryset.filter(position__level=level)
+    # Le niveau hiérarchique est maintenant calculé dynamiquement
+    # if level:
+    #     queryset = queryset.filter(position__level=level)
     
-    if is_manager.lower() == 'true':
-        queryset = queryset.filter(subordinates__isnull=False).distinct()
-    elif is_manager.lower() == 'false':
-        queryset = queryset.filter(subordinates__isnull=True)
     
-    serializer = EmployeeListSerializer(queryset, many=True)
+    serializer = EmployeeListSerializer(queryset, many=True, context={'request': request})
     return Response(serializer.data)
 
 
-@api_view(['GET'])
-def employee_subordinates(request, employee_id):
-    """Retourne tous les subordonnés d'un employé"""
-    try:
-        employee = Employee.objects.get(id=employee_id, is_active=True)
-        subordinates = employee.get_all_subordinates()
-        serializer = EmployeeListSerializer(subordinates, many=True)
-        return Response(serializer.data)
-    except Employee.DoesNotExist:
-        return Response(
-            {'error': 'Employé non trouvé'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
 
 
-@api_view(['GET'])
-def employee_management_chain(request, employee_id):
-    """Retourne la chaîne de management d'un employé"""
-    try:
-        employee = Employee.objects.get(id=employee_id, is_active=True)
-        management_chain = employee.get_management_chain()
-        serializer = EmployeeListSerializer(management_chain, many=True)
-        return Response(serializer.data)
-    except Employee.DoesNotExist:
-        return Response(
-            {'error': 'Employé non trouvé'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
 
 
 @api_view(['GET'])
 def department_statistics(request):
     """Retourne les statistiques par département"""
     stats = Department.objects.annotate(
-        total_employees=Count('positions__employees', filter=Q(positions__employees__is_active=True)),
-        managers_count=Count('positions__employees', filter=Q(
-            positions__employees__is_active=True,
-            positions__employees__subordinates__isnull=False
-        )),
-        positions_count=Count('positions')
+        total_employees=Count('employees')
     ).values(
-        'id', 'name', 'total_employees', 'managers_count', 'positions_count'
+        'id', 'name', 'total_employees'
     )
     
     return Response(list(stats))
 
 
-@api_view(['GET'])
-def org_chart_data(request):
-    """Retourne les données formatées pour l'organigramme frontend"""
-    # Structure similaire à celle utilisée dans le frontend
-    employees = Employee.objects.select_related(
-        'position', 'position__department', 'manager'
-    ).filter(is_active=True)
-    
-    # Grouper par niveau hiérarchique
-    hierarchy_data = {}
-    for employee in employees:
-        level = employee.hierarchy_level
-        if level not in hierarchy_data:
-            hierarchy_data[level] = []
-        
-        hierarchy_data[level].append({
-            'id': employee.id,
-            'name': employee.full_name,
-            'role': employee.position.title,
-            'department': employee.position.department.name,
-            'email': employee.email,
-            'phone': employee.phone,
-            'location': employee.office_location or employee.position.department.location,
-            'avatar': employee.avatar.url if employee.avatar else None,
-            'initials': employee.initials,
-            'level': level,
-            'parentId': employee.manager.id if employee.manager else None,
-            'children': []
-        })
-    
-    return Response(hierarchy_data)
 
 
 # ===== NOUVELLES VUES POUR ORGANIGRAMME/ANNUAIRE CORRIGÉES =====
@@ -231,7 +110,6 @@ def department_list_for_annuaire(request):
     Utilise les modèles annuaire (Department, Position, Employee)
     """
     departments = Department.objects.filter(
-        positions__employees__is_active=True
     ).distinct().values_list('name', flat=True).order_by('name')
     
     return Response(list(departments))
@@ -244,13 +122,14 @@ def employee_hierarchy_data(request):
     Utilise les modèles annuaire (Employee, Department, Position)
     """
     employees = Employee.objects.select_related(
-        'position', 'position__department', 'manager'
-    ).filter(is_active=True)
+        'department'
+    )
     
     hierarchy_data = {}
     
     for employee in employees:
-        level = employee.hierarchy_level
+        # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
+        level = 1
         
         if level not in hierarchy_data:
             hierarchy_data[level] = []
@@ -258,15 +137,16 @@ def employee_hierarchy_data(request):
         hierarchy_data[level].append({
             'id': employee.id,
             'name': employee.full_name,
-            'role': employee.position.title,
-            'department': employee.position.department.name,
+            'role': employee.position_title,
+            'department': employee.department.name,
             'email': employee.email,
-            'phone': employee.phone,
-            'location': employee.office_location or employee.position.department.location,
-            'avatar': employee.avatar.url if employee.avatar else None,
+            'phone_fixed': employee.phone_fixed,
+            'phone_mobile': employee.phone_mobile,
+                'location': 'Non spécifié',
+            'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
             'initials': employee.initials,
             'level': level,
-            'parentId': employee.manager.id if employee.manager else None,
+            'parentId': None,  # Plus de manager
             'children': []
         })
     
@@ -284,14 +164,13 @@ class AnnuaireUserListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['first_name', 'last_name', 'email', 'matricule', 'position', 'department']
-    filterset_fields = ['department', 'is_staff', 'is_superuser', 'is_active']
+    filterset_fields = ['department', 'is_staff', 'is_superuser']
     ordering_fields = ['last_name', 'first_name', 'created_at']
     ordering = ['last_name', 'first_name']
     
     def get_queryset(self):
         """Retourne tous les utilisateurs actifs avec leurs relations"""
         return User.objects.select_related('manager').filter(
-            is_active=True
         ).prefetch_related('subordinates')
 
 
@@ -305,7 +184,7 @@ def annuaire_user_search(request):
     department = request.GET.get('department', '')
     is_manager = request.GET.get('is_manager', '')
     
-    queryset = User.objects.select_related('manager').filter(is_active=True)
+    queryset = User.objects.select_related('manager')
     
     # Recherche textuelle
     if query:
@@ -314,7 +193,7 @@ def annuaire_user_search(request):
             Q(last_name__icontains=query) |
             Q(email__icontains=query) |
             Q(matricule__icontains=query) |
-            Q(position__icontains=query) |
+            Q(position_title__icontains=query) |
             Q(department__icontains=query)
         )
     
@@ -340,7 +219,6 @@ def annuaire_user_detail(request, user_id):
     try:
         user = User.objects.select_related('manager').prefetch_related('subordinates').get(
             id=user_id, 
-            is_active=True
         )
         serializer = UserAnnuaireSerializer(user, context={'request': request})
         return Response(serializer.data)
@@ -357,7 +235,6 @@ def annuaire_departments_list(request):
     Liste des départements uniques des utilisateurs actifs
     """
     departments = User.objects.filter(
-        is_active=True,
         department__isnull=False
     ).values_list('department', flat=True).distinct().order_by('department')
     
@@ -369,13 +246,12 @@ def annuaire_statistics(request):
     """
     Statistiques pour l'annuaire
     """
-    total_users = User.objects.filter(is_active=True).count()
-    total_managers = User.objects.filter(is_active=True, is_staff=True).count()
-    total_superusers = User.objects.filter(is_active=True, is_superuser=True).count()
+    total_users = User.objects.count()
+    total_managers = User.objects.filter(is_staff=True).count()
+    total_superusers = User.objects.filter(is_superuser=True).count()
     
     # Statistiques par département
     department_stats = User.objects.filter(
-        is_active=True,
         department__isnull=False
     ).values('department').annotate(
         count=Count('id')
@@ -396,7 +272,7 @@ def annuaire_hierarchy_data(request):
     Utilise les données de l'app authentication
     """
     # Utilisateurs avec leurs managers
-    users = User.objects.select_related('manager').filter(is_active=True)
+    users = User.objects.select_related('manager')
     
     hierarchy_data = {}
     
@@ -433,7 +309,6 @@ def department_list_for_annuaire(request):
     Utilise les modèles annuaire (Department, Position, Employee)
     """
     departments = Department.objects.filter(
-        positions__employees__is_active=True
     ).distinct().values_list('name', flat=True).order_by('name')
     
     return Response(list(departments))
@@ -446,13 +321,14 @@ def employee_hierarchy_data(request):
     Utilise les modèles annuaire (Employee, Department, Position)
     """
     employees = Employee.objects.select_related(
-        'position', 'position__department', 'manager'
-    ).filter(is_active=True)
+        'department'
+    )
     
     hierarchy_data = {}
     
     for employee in employees:
-        level = employee.hierarchy_level
+        # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
+        level = 1
         
         if level not in hierarchy_data:
             hierarchy_data[level] = []
@@ -460,15 +336,16 @@ def employee_hierarchy_data(request):
         hierarchy_data[level].append({
             'id': employee.id,
             'name': employee.full_name,
-            'role': employee.position.title,
-            'department': employee.position.department.name,
+            'role': employee.position_title,
+            'department': employee.department.name,
             'email': employee.email,
-            'phone': employee.phone,
-            'location': employee.office_location or employee.position.department.location,
-            'avatar': employee.avatar.url if employee.avatar else None,
+            'phone_fixed': employee.phone_fixed,
+            'phone_mobile': employee.phone_mobile,
+                'location': 'Non spécifié',
+            'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
             'initials': employee.initials,
             'level': level,
-            'parentId': employee.manager.id if employee.manager else None,
+            'parentId': None,  # Plus de manager
             'children': []
         })
     

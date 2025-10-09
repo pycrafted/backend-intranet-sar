@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db.models import Count
 from django.contrib.auth import get_user_model
 import re
-from .models import Department, Position, Employee, OrganizationalChart
+from .models import Department, Employee
 
 User = get_user_model()
 
@@ -12,21 +12,17 @@ class UserAnnuaireSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
     initials = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
-    manager_name = serializers.SerializerMethodField()
-    manager_position = serializers.SerializerMethodField()
     department_name = serializers.CharField(source='department', read_only=True)
     position_title = serializers.CharField(source='position', read_only=True)
-    employee_id = serializers.CharField(source='matricule', read_only=True)
-    hierarchy_level = serializers.SerializerMethodField()
-    is_manager = serializers.SerializerMethodField()
+    employee_id = serializers.CharField(read_only=True)
+    matricule = serializers.CharField(source='employee_id', read_only=True)
     
     class Meta:
         model = User
         fields = [
             'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 
             'phone_number', 'employee_id', 'position', 'position_title', 
-            'department', 'department_name', 'matricule', 'manager', 'manager_name', 
-            'manager_position', 'hierarchy_level', 'is_manager', 'is_active', 
+            'department', 'department_name', 'matricule', 'is_active', 
             'is_staff', 'is_superuser', 'avatar', 'avatar_url', 'created_at', 'updated_at'
         ]
     
@@ -45,30 +41,6 @@ class UserAnnuaireSerializer(serializers.ModelSerializer):
             return obj.avatar.url
         return None
     
-    def get_manager_name(self, obj):
-        """Retourne le nom du manager"""
-        if obj.manager:
-            return obj.manager.get_full_name()
-        return None
-    
-    def get_manager_position(self, obj):
-        """Retourne le poste du manager"""
-        if obj.manager:
-            return obj.manager.position
-        return None
-    
-    def get_hierarchy_level(self, obj):
-        """Détermine le niveau hiérarchique basé sur les permissions"""
-        if obj.is_superuser:
-            return 1
-        elif obj.is_staff:
-            return 2
-        else:
-            return 3
-    
-    def get_is_manager(self, obj):
-        """Vérifie si l'utilisateur est un manager"""
-        return obj.is_staff or obj.is_superuser
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -76,21 +48,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Department
-        fields = ['id', 'name', 'description', 'location', 'employee_count', 'created_at', 'updated_at']
-    
-    def get_employee_count(self, obj):
-        return obj.positions.aggregate(
-            total=Count('employees')
-        )['total'] or 0
-
-
-class PositionSerializer(serializers.ModelSerializer):
-    department_name = serializers.CharField(source='department.name', read_only=True)
-    employee_count = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Position
-        fields = ['id', 'title', 'department', 'department_name', 'level', 'description', 'is_management', 'employee_count']
+        fields = ['id', 'name', 'employee_count', 'created_at', 'updated_at']
     
     def get_employee_count(self, obj):
         return obj.employees.count()
@@ -98,165 +56,164 @@ class PositionSerializer(serializers.ModelSerializer):
 
 class EmployeeListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des employés (version allégée)"""
-    department_name = serializers.CharField(source='position.department.name', read_only=True)
-    position_title = serializers.CharField(source='position.title', read_only=True)
-    manager_name = serializers.CharField(source='manager.full_name', read_only=True)
-    hierarchy_level = serializers.ReadOnlyField()
-    is_manager = serializers.ReadOnlyField()
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    position_title = serializers.CharField()
+    matricule = serializers.CharField(source='employee_id', read_only=True)
+    avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = Employee
         fields = [
-            'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone',
-            'employee_id', 'position', 'position_title', 'department_name', 'manager',
-            'manager_name', 'hierarchy_level', 'is_manager', 'office_location',
-            'work_schedule', 'is_active', 'hire_date', 'avatar'
+            'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone_fixed', 'phone_mobile',
+            'employee_id', 'matricule', 'department', 'position_title', 'department_name',
+            'avatar'
         ]
     
-    def validate_phone(self, value):
-        """Valider et normaliser le numéro de téléphone"""
+    def get_avatar(self, obj):
+        """Retourne l'URL complète de l'avatar"""
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                url = request.build_absolute_uri(obj.avatar.url)
+                print(f"🖼️ [AVATAR_URL] URL générée: {url}")
+                return url
+            # Fallback si pas de request (ex: tests)
+            from django.conf import settings
+            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+            url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
+            print(f"🖼️ [AVATAR_URL] URL fallback: {url}")
+            return url
+        print(f"🖼️ [AVATAR_URL] Aucun avatar pour {obj.full_name}")
+        return None
+    
+    def validate_phone_fixed(self, value):
+        """Valider l'unicité du numéro de téléphone fixe"""
         if value:
-            # Normaliser le numéro
-            normalized_phone = self.normalize_phone(value)
-            
             # Vérifier l'unicité
             if self.instance:
                 # Mode édition
-                if Employee.objects.filter(phone=normalized_phone).exclude(id=self.instance.id).exists():
-                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone existe déjà.')
+                if Employee.objects.filter(phone_fixed=value).exclude(id=self.instance.id).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone fixe existe déjà.')
             else:
                 # Mode création
-                if Employee.objects.filter(phone=normalized_phone).exists():
-                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone existe déjà.')
+                if Employee.objects.filter(phone_fixed=value).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone fixe existe déjà.')
             
-            return normalized_phone
+            return value
         return value
     
-    def normalize_phone(self, phone):
-        """Normaliser un numéro de téléphone"""
-        if not phone:
-            return phone
-        
-        # Supprimer tous les caractères non numériques sauf +
-        normalized = re.sub(r'[^\d+]', '', phone)
-        
-        # Ajouter +221 si le numéro commence par 77, 78, 76, 70
-        if normalized.startswith(('77', '78', '76', '70')) and not normalized.startswith('+'):
-            normalized = '+221' + normalized
-        
-        return normalized
+    def validate_phone_mobile(self, value):
+        """Valider l'unicité du numéro de téléphone mobile"""
+        if value:
+            # Vérifier l'unicité
+            if self.instance:
+                # Mode édition
+                if Employee.objects.filter(phone_mobile=value).exclude(id=self.instance.id).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone mobile existe déjà.')
+            else:
+                # Mode création
+                if Employee.objects.filter(phone_mobile=value).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone mobile existe déjà.')
+            
+            return value
+        return value
+    
 
 
 class EmployeeDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un employé"""
-    department_name = serializers.CharField(source='position.department.name', read_only=True)
-    position_title = serializers.CharField(source='position.title', read_only=True)
-    manager_name = serializers.CharField(source='manager.full_name', read_only=True)
-    hierarchy_level = serializers.ReadOnlyField()
-    is_manager = serializers.ReadOnlyField()
-    subordinates = EmployeeListSerializer(many=True, read_only=True)
-    management_chain = serializers.SerializerMethodField()
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    position_title = serializers.CharField()
+    matricule = serializers.CharField(source='employee_id', read_only=True)
+    avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = Employee
         fields = [
-            'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone',
-            'employee_id', 'position', 'position_title', 'department_name', 'manager',
-            'manager_name', 'hierarchy_level', 'is_manager', 'office_location',
-            'work_schedule', 'is_active', 'hire_date', 'avatar', 'subordinates',
-            'management_chain', 'created_at', 'updated_at'
+            'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone_fixed', 'phone_mobile',
+            'employee_id', 'matricule', 'department', 'position_title', 'department_name',
+            'avatar',
+            'created_at', 'updated_at'
         ]
     
-    def validate_phone(self, value):
-        """Valider et normaliser le numéro de téléphone"""
+    def get_avatar(self, obj):
+        """Retourne l'URL complète de l'avatar"""
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                url = request.build_absolute_uri(obj.avatar.url)
+                print(f"🖼️ [AVATAR_URL] URL générée: {url}")
+                return url
+            # Fallback si pas de request (ex: tests)
+            from django.conf import settings
+            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+            url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
+            print(f"🖼️ [AVATAR_URL] URL fallback: {url}")
+            return url
+        print(f"🖼️ [AVATAR_URL] Aucun avatar pour {obj.full_name}")
+        return None
+    
+    def validate_phone_fixed(self, value):
+        """Valider l'unicité du numéro de téléphone fixe"""
         if value:
-            # Normaliser le numéro
-            normalized_phone = self.normalize_phone(value)
-            
             # Vérifier l'unicité
             if self.instance:
                 # Mode édition
-                if Employee.objects.filter(phone=normalized_phone).exclude(id=self.instance.id).exists():
-                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone existe déjà.')
+                if Employee.objects.filter(phone_fixed=value).exclude(id=self.instance.id).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone fixe existe déjà.')
             else:
                 # Mode création
-                if Employee.objects.filter(phone=normalized_phone).exists():
-                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone existe déjà.')
+                if Employee.objects.filter(phone_fixed=value).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone fixe existe déjà.')
             
-            return normalized_phone
+            return value
         return value
     
-    def normalize_phone(self, phone):
-        """Normaliser un numéro de téléphone"""
-        if not phone:
-            return phone
-        
-        # Supprimer tous les caractères non numériques sauf +
-        normalized = re.sub(r'[^\d+]', '', phone)
-        
-        # Ajouter +221 si le numéro commence par 77, 78, 76, 70
-        if normalized.startswith(('77', '78', '76', '70')) and not normalized.startswith('+'):
-            normalized = '+221' + normalized
-        
-        return normalized
+    def validate_phone_mobile(self, value):
+        """Valider l'unicité du numéro de téléphone mobile"""
+        if value:
+            # Vérifier l'unicité
+            if self.instance:
+                # Mode édition
+                if Employee.objects.filter(phone_mobile=value).exclude(id=self.instance.id).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone mobile existe déjà.')
+            else:
+                # Mode création
+                if Employee.objects.filter(phone_mobile=value).exists():
+                    raise serializers.ValidationError('Un employé avec ce numéro de téléphone mobile existe déjà.')
+            
+            return value
+        return value
     
-    def get_management_chain(self, obj):
-        """Retourne la chaîne de management"""
-        chain = obj.get_management_chain()
-        return EmployeeListSerializer(chain, many=True).data
-
-
-class OrganizationalChartSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrganizationalChart
-        fields = ['id', 'name', 'description', 'is_active', 'created_at', 'updated_at']
+    
 
 
 class EmployeeHierarchySerializer(serializers.ModelSerializer):
     """Serializer pour l'organigramme hiérarchique"""
-    children = serializers.SerializerMethodField()
-    department_name = serializers.CharField(source='position.department.name', read_only=True)
-    position_title = serializers.CharField(source='position.title', read_only=True)
-    hierarchy_level = serializers.ReadOnlyField()
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    position_title = serializers.CharField(read_only=True)
     
     class Meta:
         model = Employee
         fields = [
-            'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone',
-            'employee_id', 'position', 'position_title', 'department_name', 'hierarchy_level',
-            'office_location', 'avatar', 'children'
+            'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone_fixed', 'phone_mobile',
+            'employee_id', 'department', 'position_title', 'department_name',
+            'avatar'
         ]
-    
-    def get_children(self, obj):
-        """Retourne les subordonnés directs"""
-        subordinates = obj.subordinates.filter(is_active=True)
-        return EmployeeHierarchySerializer(subordinates, many=True).data
 
 
 class DepartmentHierarchySerializer(serializers.ModelSerializer):
     """Serializer pour l'organigramme par département"""
     employees = serializers.SerializerMethodField()
-    manager = serializers.SerializerMethodField()
     
     class Meta:
         model = Department
-        fields = ['id', 'name', 'description', 'location', 'manager', 'employees']
+        fields = ['id', 'name', 'employees']
     
     def get_employees(self, obj):
         """Retourne les employés du département"""
         employees = Employee.objects.filter(
-            position__department=obj,
+            department=obj,
             is_active=True
-        ).select_related('position', 'manager')
+        ).select_related('department')
         return EmployeeListSerializer(employees, many=True).data
-    
-    def get_manager(self, obj):
-        """Retourne le manager du département"""
-        manager = Employee.objects.filter(
-            position__department=obj,
-            position__is_management=True,
-            is_active=True
-        ).first()
-        if manager:
-            return EmployeeListSerializer(manager).data
-        return None
