@@ -405,11 +405,38 @@ class DocumentFolderListCreateView(generics.ListCreateAPIView):
         logger.info(f"📁 [DOCUMENTS_API] POST /documents/folders/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
         logger.info(f"📁 [DOCUMENTS_API] Headers: {dict(request.META)}")
         logger.info(f"📁 [DOCUMENTS_API] Data: {request.data}")
-        return super().post(request, *args, **kwargs)
+        logger.info(f"📁 [DOCUMENTS_API] User authenticated: {hasattr(request, 'user') and request.user.is_authenticated}")
+        
+        try:
+            response = super().post(request, *args, **kwargs)
+            logger.info(f"📁 [DOCUMENTS_API] POST success - Status: {response.status_code}")
+            return response
+        except Exception as e:
+            logger.error(f"📁 [DOCUMENTS_API] POST error: {str(e)}")
+            logger.error(f"📁 [DOCUMENTS_API] POST error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"📁 [DOCUMENTS_API] POST traceback: {traceback.format_exc()}")
+            raise
     
     def perform_create(self, serializer):
         """Créer un nouveau dossier"""
-        serializer.save(created_by=self.request.user)
+        # Utiliser un utilisateur par défaut si l'authentification est désactivée
+        if hasattr(self.request, 'user') and self.request.user.is_authenticated:
+            created_by = self.request.user
+        else:
+            # Récupérer ou créer un utilisateur par défaut
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            created_by, created = User.objects.get_or_create(
+                username='system',
+                defaults={
+                    'email': 'system@example.com',
+                    'first_name': 'System',
+                    'last_name': 'User'
+                }
+            )
+        
+        serializer.save(created_by=created_by)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
