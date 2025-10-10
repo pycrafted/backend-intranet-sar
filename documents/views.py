@@ -8,6 +8,9 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q, Sum
 from django.conf import settings
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import Document, DocumentCategory, DocumentFolder
 from .serializers import (
@@ -27,6 +30,18 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = []  # Authentification temporairement désactivée
     parser_classes = [MultiPartParser, FormParser]
+    
+    def get(self, request, *args, **kwargs):
+        logger.info(f"📄 [DOCUMENTS_API] GET /documents/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"📄 [DOCUMENTS_API] Headers: {dict(request.META)}")
+        logger.info(f"📄 [DOCUMENTS_API] Query params: {request.GET}")
+        return super().get(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        logger.info(f"📄 [DOCUMENTS_API] POST /documents/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"📄 [DOCUMENTS_API] Headers: {dict(request.META)}")
+        logger.info(f"📄 [DOCUMENTS_API] Files: {list(request.FILES.keys()) if request.FILES else 'None'}")
+        return super().post(request, *args, **kwargs)
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -123,24 +138,47 @@ class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un document
     """
-    permission_classes = [IsAuthenticated]  # Authentification requise
+    permission_classes = []  # Authentification désactivée pour Vercel
     serializer_class = DocumentSerializer
     
     def get_queryset(self):
         return Document.objects.filter(is_active=True)
+    
+    def get(self, request, *args, **kwargs):
+        logger.info(f"📄 [DOCUMENTS_API] GET /documents/{kwargs.get('pk')}/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"📄 [DOCUMENTS_API] Headers: {dict(request.META)}")
+        return super().get(request, *args, **kwargs)
+    
+    def patch(self, request, *args, **kwargs):
+        logger.info(f"📝 [DOCUMENTS_API] PATCH /documents/{kwargs.get('pk')}/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"📝 [DOCUMENTS_API] Headers: {dict(request.META)}")
+        logger.info(f"📝 [DOCUMENTS_API] Data: {request.data}")
+        return super().patch(request, *args, **kwargs)
+    
+    def delete(self, request, *args, **kwargs):
+        logger.info(f"🗑️ [DOCUMENTS_API] DELETE /documents/{kwargs.get('pk')}/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"🗑️ [DOCUMENTS_API] Headers: {dict(request.META)}")
+        return super().delete(request, *args, **kwargs)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_download(request, pk):
     """
     Télécharger un document PDF
     """
+    logger.info(f"📥 [DOCUMENTS_API] GET /documents/{pk}/download/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+    logger.info(f"📥 [DOCUMENTS_API] Headers: {dict(request.META)}")
+    
     try:
         document = get_object_or_404(Document, pk=pk, is_active=True)
+        logger.info(f"📥 [DOCUMENTS_API] Document trouvé: {document.title}")
         
         # Vérifier que le fichier existe
         if not document.file or not os.path.exists(document.file.path):
+            logger.error(f"📥 [DOCUMENTS_API] Fichier non trouvé: {document.file.path if document.file else 'None'}")
             raise Http404("Fichier non trouvé")
+        
+        logger.info(f"📥 [DOCUMENTS_API] Fichier trouvé: {document.file.path}")
         
         # Incrémenter le compteur de téléchargements
         document.increment_download_count()
@@ -150,34 +188,45 @@ def document_download(request, pk):
             response = HttpResponse(file.read(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{document.title}.pdf"'
             response['Content-Length'] = document.file_size
+            logger.info(f"📥 [DOCUMENTS_API] Téléchargement réussi: {document.title}")
             return response
             
-    except Http404:
+    except Http404 as e:
+        logger.error(f"📥 [DOCUMENTS_API] Erreur 404: {str(e)}")
         return Response(
             {'error': 'Fichier non trouvé'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
+        logger.error(f"📥 [DOCUMENTS_API] Erreur inattendue: {str(e)}")
         return Response(
             {'error': f'Erreur lors du téléchargement: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_view(request, pk):
     """
     Visualiser un document PDF dans le navigateur
     """
+    logger.info(f"👁️ [DOCUMENTS_API] GET /documents/{pk}/view/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+    logger.info(f"👁️ [DOCUMENTS_API] Headers: {dict(request.META)}")
+    
     try:
         document = get_object_or_404(Document, pk=pk, is_active=True)
+        logger.info(f"👁️ [DOCUMENTS_API] Document trouvé: {document.title}")
         
         # Vérifier que le fichier existe
         if not document.file or not os.path.exists(document.file.path):
+            logger.error(f"👁️ [DOCUMENTS_API] Fichier non trouvé: {document.file.path if document.file else 'None'}")
             raise Http404("Fichier non trouvé")
+        
+        logger.info(f"👁️ [DOCUMENTS_API] Fichier trouvé: {document.file.path}")
         
         # Vérifier que le fichier est un PDF
         if not document.is_pdf():
+            logger.warning(f"👁️ [DOCUMENTS_API] Fichier non-PDF: {document.title}")
             return Response(
                 {'error': 'La visualisation en ligne n\'est disponible que pour les documents PDF. Veuillez télécharger le fichier pour le consulter.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -188,25 +237,31 @@ def document_view(request, pk):
             response = HttpResponse(file.read(), content_type='application/pdf')
             response['Content-Disposition'] = f'inline; filename="{document.title}.pdf"'
             response['Content-Length'] = document.file_size
+            logger.info(f"👁️ [DOCUMENTS_API] Visualisation réussie: {document.title}")
             return response
             
-    except Http404:
+    except Http404 as e:
+        logger.error(f"👁️ [DOCUMENTS_API] Erreur 404: {str(e)}")
         return Response(
             {'error': 'Fichier non trouvé'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
+        logger.error(f"👁️ [DOCUMENTS_API] Erreur inattendue: {str(e)}")
         return Response(
             {'error': f'Erreur lors de la visualisation: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_stats(request):
     """
     Statistiques des documents
     """
+    logger.info(f"📊 [DOCUMENTS_API] GET /documents/stats/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+    logger.info(f"📊 [DOCUMENTS_API] Headers: {dict(request.META)}")
+    
     try:
         total_documents = Document.objects.filter(is_active=True).count()
         total_downloads = Document.objects.filter(is_active=True).aggregate(
@@ -221,20 +276,24 @@ def document_stats(request):
             created_at__gte=timezone.now() - timedelta(days=7)
         ).count()
         
-        return Response({
+        stats = {
             'total_documents': total_documents,
             'total_downloads': total_downloads,
             'recent_documents': recent_documents,
-        })
+        }
+        
+        logger.info(f"📊 [DOCUMENTS_API] Statistiques calculées: {stats}")
+        return Response(stats)
         
     except Exception as e:
+        logger.error(f"📊 [DOCUMENTS_API] Erreur lors du calcul des statistiques: {str(e)}")
         return Response(
             {'error': f'Erreur lors du calcul des statistiques: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_categories(request):
     """
     Liste des catégories de documents
@@ -250,7 +309,7 @@ def document_categories(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_bulk_delete(request):
     """
     Supprimer plusieurs documents en lot
@@ -289,7 +348,7 @@ class DocumentFolderListCreateView(generics.ListCreateAPIView):
     GET: Liste tous les dossiers actifs
     POST: Créer un nouveau dossier
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = []  # Authentification désactivée pour Vercel
     serializer_class = DocumentFolderSerializer
     
     def get_queryset(self):
@@ -306,6 +365,18 @@ class DocumentFolderListCreateView(generics.ListCreateAPIView):
         
         return queryset.order_by('name')
     
+    def get(self, request, *args, **kwargs):
+        logger.info(f"📁 [DOCUMENTS_API] GET /documents/folders/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"📁 [DOCUMENTS_API] Headers: {dict(request.META)}")
+        logger.info(f"📁 [DOCUMENTS_API] Query params: {request.GET}")
+        return super().get(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        logger.info(f"📁 [DOCUMENTS_API] POST /documents/folders/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        logger.info(f"📁 [DOCUMENTS_API] Headers: {dict(request.META)}")
+        logger.info(f"📁 [DOCUMENTS_API] Data: {request.data}")
+        return super().post(request, *args, **kwargs)
+    
     def perform_create(self, serializer):
         """Créer un nouveau dossier"""
         serializer.save(created_by=self.request.user)
@@ -314,18 +385,21 @@ class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un dossier
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = []  # Authentification désactivée pour Vercel
     serializer_class = DocumentFolderSerializer
     
     def get_queryset(self):
         return DocumentFolder.objects.filter(is_active=True)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_folders_tree(request):
     """
     Retourne l'arbre complet des dossiers
     """
+    logger.info(f"🌳 [DOCUMENTS_API] GET /documents/folders/tree/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+    logger.info(f"🌳 [DOCUMENTS_API] Headers: {dict(request.META)}")
+    
     try:
         # Récupérer tous les dossiers racines (sans parent)
         root_folders = DocumentFolder.objects.filter(
@@ -333,21 +407,30 @@ def document_folders_tree(request):
             parent__isnull=True
         ).order_by('name')
         
+        logger.info(f"🌳 [DOCUMENTS_API] Dossiers racines trouvés: {root_folders.count()}")
+        
         serializer = DocumentFolderTreeSerializer(root_folders, many=True)
-        return Response(serializer.data)
+        data = serializer.data
+        
+        logger.info(f"🌳 [DOCUMENTS_API] Arbre des dossiers sérialisé: {len(data)} dossiers racines")
+        return Response(data)
         
     except Exception as e:
+        logger.error(f"🌳 [DOCUMENTS_API] Erreur lors de la récupération de l'arbre: {str(e)}")
         return Response(
             {'error': f'Erreur lors de la récupération de l\'arbre: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])  # Authentification désactivée pour Vercel
 def document_folders_stats(request):
     """
     Statistiques des dossiers
     """
+    logger.info(f"📁 [DOCUMENTS_API] GET /documents/folders/stats/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+    logger.info(f"📁 [DOCUMENTS_API] Headers: {dict(request.META)}")
+    
     try:
         total_folders = DocumentFolder.objects.filter(is_active=True).count()
         root_folders = DocumentFolder.objects.filter(
@@ -355,12 +438,16 @@ def document_folders_stats(request):
             parent__isnull=True
         ).count()
         
-        return Response({
+        stats = {
             'total_folders': total_folders,
             'root_folders': root_folders,
-        })
+        }
+        
+        logger.info(f"📁 [DOCUMENTS_API] Statistiques des dossiers calculées: {stats}")
+        return Response(stats)
         
     except Exception as e:
+        logger.error(f"📁 [DOCUMENTS_API] Erreur lors du calcul des statistiques: {str(e)}")
         return Response(
             {'error': f'Erreur lors du calcul des statistiques: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
