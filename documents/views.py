@@ -3,10 +3,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Sum
 from django.conf import settings
+from django.views.decorators.http import require_http_methods
+from django.utils.decorators import method_decorator
+from django.views import View
+from corsheaders.decorators import cors_exempt
 import os
 import logging
 
@@ -22,6 +26,7 @@ from .serializers import (
     DocumentFolderTreeSerializer
 )
 
+@method_decorator(cors_exempt, name='dispatch')
 class DocumentListCreateView(generics.ListCreateAPIView):
     """
     Vue pour lister et créer des documents
@@ -35,13 +40,32 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         logger.info(f"📄 [DOCUMENTS_API] GET /documents/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
         logger.info(f"📄 [DOCUMENTS_API] Headers: {dict(request.META)}")
         logger.info(f"📄 [DOCUMENTS_API] Query params: {request.GET}")
-        return super().get(request, *args, **kwargs)
+        response = super().get(request, *args, **kwargs)
+        # Ajouter les headers CORS
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Accept, Authorization'
+        return response
     
     def post(self, request, *args, **kwargs):
         logger.info(f"📄 [DOCUMENTS_API] POST /documents/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
         logger.info(f"📄 [DOCUMENTS_API] Headers: {dict(request.META)}")
         logger.info(f"📄 [DOCUMENTS_API] Files: {list(request.FILES.keys()) if request.FILES else 'None'}")
-        return super().post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
+        # Ajouter les headers CORS
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Accept, Authorization'
+        return response
+    
+    def options(self, request, *args, **kwargs):
+        """Gérer les requêtes OPTIONS (preflight) pour CORS"""
+        response = JsonResponse({})
+        response['Access-Control-Allow-Origin'] = '*'
+        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Accept, Authorization'
+        response['Access-Control-Max-Age'] = '86400'
+        return response
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -134,6 +158,7 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         
         serializer.save(uploaded_by=default_user, file_size=file_size, category=category, folder=folder)
 
+@method_decorator(cors_exempt, name='dispatch')
 class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un document
@@ -162,6 +187,7 @@ class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
+@cors_exempt
 def document_download(request, pk):
     """
     Télécharger un document PDF
@@ -255,6 +281,7 @@ def document_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
+@cors_exempt
 def document_stats(request):
     """
     Statistiques des documents
@@ -294,6 +321,7 @@ def document_stats(request):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
+@cors_exempt
 def document_categories(request):
     """
     Liste des catégories de documents
@@ -310,6 +338,7 @@ def document_categories(request):
 
 @api_view(['POST'])
 @permission_classes([])  # Authentification désactivée pour Vercel
+@cors_exempt
 def document_bulk_delete(request):
     """
     Supprimer plusieurs documents en lot
@@ -342,6 +371,7 @@ def document_bulk_delete(request):
 
 # ===== VUES POUR LES DOSSIERS =====
 
+@method_decorator(cors_exempt, name='dispatch')
 class DocumentFolderListCreateView(generics.ListCreateAPIView):
     """
     Vue pour lister et créer des dossiers
@@ -381,6 +411,7 @@ class DocumentFolderListCreateView(generics.ListCreateAPIView):
         """Créer un nouveau dossier"""
         serializer.save(created_by=self.request.user)
 
+@method_decorator(cors_exempt, name='dispatch')
 class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un dossier
@@ -393,6 +424,7 @@ class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
+@cors_exempt
 def document_folders_tree(request):
     """
     Retourne l'arbre complet des dossiers
@@ -424,6 +456,7 @@ def document_folders_tree(request):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
+@cors_exempt
 def document_folders_stats(request):
     """
     Statistiques des dossiers

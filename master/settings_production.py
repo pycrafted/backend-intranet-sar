@@ -98,7 +98,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CORS_ALLOWED_ORIGINS = [origin for origin in CORS_ALLOWED_ORIGINS if origin]
 
 # Configuration CORS pour les cookies de session
-CORS_ALLOW_CREDENTIALS = False  # Désactivé pour éviter les problèmes d'authentification
+CORS_ALLOW_CREDENTIALS = True  # Activé pour les endpoints qui nécessitent l'authentification
 CORS_ALLOW_ALL_ORIGINS = False  # Sécurité : seulement les origines autorisées
 
 # Headers CORS autorisés pour les images
