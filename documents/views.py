@@ -10,7 +10,7 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
-from corsheaders.decorators import cors_exempt
+from django.views.decorators.csrf import csrf_exempt
 import os
 import logging
 
@@ -26,7 +26,7 @@ from .serializers import (
     DocumentFolderTreeSerializer
 )
 
-@method_decorator(cors_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
 class DocumentListCreateView(generics.ListCreateAPIView):
     """
     Vue pour lister et créer des documents
@@ -158,7 +158,7 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         
         serializer.save(uploaded_by=default_user, file_size=file_size, category=category, folder=folder)
 
-@method_decorator(cors_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
 class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un document
@@ -187,7 +187,7 @@ class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
-@cors_exempt
+@csrf_exempt
 def document_download(request, pk):
     """
     Télécharger un document PDF
@@ -281,7 +281,7 @@ def document_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
-@cors_exempt
+@csrf_exempt
 def document_stats(request):
     """
     Statistiques des documents
@@ -321,7 +321,7 @@ def document_stats(request):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
-@cors_exempt
+@csrf_exempt
 def document_categories(request):
     """
     Liste des catégories de documents
@@ -338,7 +338,7 @@ def document_categories(request):
 
 @api_view(['POST'])
 @permission_classes([])  # Authentification désactivée pour Vercel
-@cors_exempt
+@csrf_exempt
 def document_bulk_delete(request):
     """
     Supprimer plusieurs documents en lot
@@ -371,7 +371,7 @@ def document_bulk_delete(request):
 
 # ===== VUES POUR LES DOSSIERS =====
 
-@method_decorator(cors_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
 class DocumentFolderListCreateView(generics.ListCreateAPIView):
     """
     Vue pour lister et créer des dossiers
@@ -411,7 +411,7 @@ class DocumentFolderListCreateView(generics.ListCreateAPIView):
         """Créer un nouveau dossier"""
         serializer.save(created_by=self.request.user)
 
-@method_decorator(cors_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name='dispatch')
 class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Vue pour récupérer, modifier et supprimer un dossier
@@ -424,7 +424,7 @@ class DocumentFolderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
-@cors_exempt
+@csrf_exempt
 def document_folders_tree(request):
     """
     Retourne l'arbre complet des dossiers
@@ -456,7 +456,7 @@ def document_folders_tree(request):
 
 @api_view(['GET'])
 @permission_classes([])  # Authentification désactivée pour Vercel
-@cors_exempt
+@csrf_exempt
 def document_folders_stats(request):
     """
     Statistiques des dossiers
