@@ -1,6 +1,7 @@
 from rest_framework import generics, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.db.models import Q, Count
 from django.db import models
 from django.utils import timezone
@@ -17,6 +18,7 @@ class ArticleListAPIView(generics.ListAPIView):
     API endpoint pour récupérer la liste des articles avec filtrage et recherche
     """
     serializer_class = ArticleSerializer
+    permission_classes = [AllowAny]  # Permettre l'accès sans authentification
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -85,6 +87,7 @@ class ArticleDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
+    permission_classes = [AllowAny]  # Permettre l'accès sans authentification
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -162,6 +165,7 @@ def create_article(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def article_stats(request):
     """
     API endpoint pour récupérer les statistiques des filtres
