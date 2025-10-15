@@ -1,0 +1,527 @@
+[
+  {
+    "model": "organigramme.direction",
+    "pk": 1,
+    "fields": {
+      "name": "Ressources Humaines",
+      "slug": "rh",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.direction",
+    "pk": 2,
+    "fields": {
+      "name": "Informatique",
+      "slug": "informatique",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.direction",
+    "pk": 3,
+    "fields": {
+      "name": "Administration",
+      "slug": "administration",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.direction",
+    "pk": 4,
+    "fields": {
+      "name": "Finance",
+      "slug": "finance",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 1,
+    "fields": {
+      "first_name": "Aminata",
+      "last_name": "Diop",
+      "job_title": "Directrice Générale",
+      "position_title": "Directrice Générale",
+      "email": "aminata.diop@sar.sn",
+      "phone": "77 123 4567",
+      "phone_fixed": "33 123 4567",
+      "phone_mobile": "77 123 4567",
+      "office_phone": "33 123 4567",
+      "employee_id": "DG-001",
+      "matricule": "DG-001",
+      "position": 1,
+      "department_name": "Direction Générale",
+      "hierarchy_level": 1,
+      "is_manager": true,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau Principal",
+      "work_schedule": "8h-17h",
+      "hire_date": "2020-01-01",
+      "manager": null,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 2,
+    "fields": {
+      "first_name": "Mamadou",
+      "last_name": "Fall",
+      "job_title": "Directeur des Systèmes d'Information",
+      "position_title": "Directeur des Systèmes d'Information",
+      "email": "mamadou.fall@sar.sn",
+      "phone": "77 222 3333",
+      "phone_fixed": "33 222 3333",
+      "phone_mobile": "77 222 3333",
+      "office_phone": "33 222 3333",
+      "employee_id": "DSI-001",
+      "matricule": "DSI-001",
+      "position": 2,
+      "department_name": "Informatique",
+      "hierarchy_level": 2,
+      "is_manager": true,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau IT",
+      "work_schedule": "8h-17h",
+      "hire_date": "2021-03-15",
+      "manager": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 3,
+    "fields": {
+      "first_name": "Fatou",
+      "last_name": "Sarr",
+      "job_title": "Directrice des Ressources Humaines",
+      "position_title": "Directrice des Ressources Humaines",
+      "email": "fatou.sarr@sar.sn",
+      "phone": "77 333 4444",
+      "phone_fixed": "33 333 4444",
+      "phone_mobile": "77 333 4444",
+      "office_phone": "33 333 4444",
+      "employee_id": "DRH-001",
+      "matricule": "DRH-001",
+      "position": 3,
+      "department_name": "Ressources Humaines",
+      "hierarchy_level": 2,
+      "is_manager": true,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau RH",
+      "work_schedule": "8h-17h",
+      "hire_date": "2021-06-01",
+      "manager": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 4,
+    "fields": {
+      "first_name": "Ibrahima",
+      "last_name": "Ndiaye",
+      "job_title": "Directeur Administratif et Financier",
+      "position_title": "Directeur Administratif et Financier",
+      "email": "ibrahima.ndiaye@sar.sn",
+      "phone": "77 444 5555",
+      "phone_fixed": "33 444 5555",
+      "phone_mobile": "77 444 5555",
+      "office_phone": "33 444 5555",
+      "employee_id": "DAF-001",
+      "matricule": "DAF-001",
+      "position": 4,
+      "department_name": "Administration",
+      "hierarchy_level": 2,
+      "is_manager": true,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau Administration",
+      "work_schedule": "8h-17h",
+      "hire_date": "2021-09-01",
+      "manager": 1,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 5,
+    "fields": {
+      "first_name": "Aïcha",
+      "last_name": "Ba",
+      "job_title": "Chef de Projet IT",
+      "position_title": "Chef de Projet IT",
+      "email": "aicha.ba@sar.sn",
+      "phone": "77 555 6666",
+      "phone_fixed": "33 555 6666",
+      "phone_mobile": "77 555 6666",
+      "office_phone": "33 555 6666",
+      "employee_id": "IT-001",
+      "matricule": "IT-001",
+      "position": 5,
+      "department_name": "Informatique",
+      "hierarchy_level": 3,
+      "is_manager": true,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau IT",
+      "work_schedule": "8h-17h",
+      "hire_date": "2022-01-15",
+      "manager": 2,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 6,
+    "fields": {
+      "first_name": "Souleymane",
+      "last_name": "Gueye",
+      "job_title": "Développeur Senior",
+      "position_title": "Développeur Senior",
+      "email": "souleymane.gueye@sar.sn",
+      "phone": "77 666 7777",
+      "phone_fixed": "33 666 7777",
+      "phone_mobile": "77 666 7777",
+      "office_phone": "33 666 7777",
+      "employee_id": "DEV-001",
+      "matricule": "DEV-001",
+      "position": 6,
+      "department_name": "Informatique",
+      "hierarchy_level": 4,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau IT",
+      "work_schedule": "8h-17h",
+      "hire_date": "2022-03-01",
+      "manager": 5,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 7,
+    "fields": {
+      "first_name": "Khadija",
+      "last_name": "Diallo",
+      "job_title": "Responsable Recrutement",
+      "position_title": "Responsable Recrutement",
+      "email": "khadija.diallo@sar.sn",
+      "phone": "77 777 8888",
+      "phone_fixed": "33 777 8888",
+      "phone_mobile": "77 777 8888",
+      "office_phone": "33 777 8888",
+      "employee_id": "RH-001",
+      "matricule": "RH-001",
+      "position": 7,
+      "department_name": "Ressources Humaines",
+      "hierarchy_level": 3,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau RH",
+      "work_schedule": "8h-17h",
+      "hire_date": "2022-05-01",
+      "manager": 3,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 8,
+    "fields": {
+      "first_name": "Modou",
+      "last_name": "Thiam",
+      "job_title": "Comptable Principal",
+      "position_title": "Comptable Principal",
+      "email": "modou.thiam@sar.sn",
+      "phone": "77 888 9999",
+      "phone_fixed": "33 888 9999",
+      "phone_mobile": "77 888 9999",
+      "office_phone": "33 888 9999",
+      "employee_id": "COMP-001",
+      "matricule": "COMP-001",
+      "position": 8,
+      "department_name": "Administration",
+      "hierarchy_level": 3,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau Administration",
+      "work_schedule": "8h-17h",
+      "hire_date": "2022-07-01",
+      "manager": 4,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 9,
+    "fields": {
+      "first_name": "Mariama",
+      "last_name": "Cissé",
+      "job_title": "Assistante Administrative",
+      "position_title": "Assistante Administrative",
+      "email": "mariama.cisse@sar.sn",
+      "phone": "77 999 0000",
+      "phone_fixed": "33 999 0000",
+      "phone_mobile": "77 999 0000",
+      "office_phone": "33 999 0000",
+      "employee_id": "ADM-001",
+      "matricule": "ADM-001",
+      "position": 9,
+      "department_name": "Administration",
+      "hierarchy_level": 3,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau Administration",
+      "work_schedule": "8h-17h",
+      "hire_date": "2022-09-01",
+      "manager": 4,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 10,
+    "fields": {
+      "first_name": "Cheikh",
+      "last_name": "Wade",
+      "job_title": "Analyste Système",
+      "position_title": "Analyste Système",
+      "email": "cheikh.wade@sar.sn",
+      "phone": "77 000 1111",
+      "phone_fixed": "33 000 1111",
+      "phone_mobile": "77 000 1111",
+      "office_phone": "33 000 1111",
+      "employee_id": "SYS-001",
+      "matricule": "SYS-001",
+      "position": 10,
+      "department_name": "Informatique",
+      "hierarchy_level": 3,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau IT",
+      "work_schedule": "8h-17h",
+      "hire_date": "2022-11-01",
+      "manager": 2,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 11,
+    "fields": {
+      "first_name": "Awa",
+      "last_name": "Faye",
+      "job_title": "Responsable Formation",
+      "position_title": "Responsable Formation",
+      "email": "awa.faye@sar.sn",
+      "phone": "77 111 2222",
+      "phone_fixed": "33 111 2222",
+      "phone_mobile": "77 111 2222",
+      "office_phone": "33 111 2222",
+      "employee_id": "FORM-001",
+      "matricule": "FORM-001",
+      "position": 11,
+      "department_name": "Ressources Humaines",
+      "hierarchy_level": 3,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau RH",
+      "work_schedule": "8h-17h",
+      "hire_date": "2023-01-01",
+      "manager": 3,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent",
+    "pk": 12,
+    "fields": {
+      "first_name": "Papa",
+      "last_name": "Sow",
+      "job_title": "Contrôleur de Gestion",
+      "position_title": "Contrôleur de Gestion",
+      "email": "papa.sow@sar.sn",
+      "phone": "77 222 3333",
+      "phone_fixed": "33 222 3333",
+      "phone_mobile": "77 222 3333",
+      "office_phone": "33 222 3333",
+      "employee_id": "CG-001",
+      "matricule": "CG-001",
+      "position": 12,
+      "department_name": "Administration",
+      "hierarchy_level": 3,
+      "is_manager": false,
+      "is_active": true,
+      "avatar": null,
+      "office_location": "Bureau Administration",
+      "work_schedule": "8h-17h",
+      "hire_date": "2023-03-01",
+      "manager": 4,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 1,
+    "fields": {
+      "agent": 1,
+      "direction": 1
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 2,
+    "fields": {
+      "agent": 1,
+      "direction": 2
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 3,
+    "fields": {
+      "agent": 1,
+      "direction": 3
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 4,
+    "fields": {
+      "agent": 1,
+      "direction": 4
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 5,
+    "fields": {
+      "agent": 2,
+      "direction": 2
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 6,
+    "fields": {
+      "agent": 2,
+      "direction": 3
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 7,
+    "fields": {
+      "agent": 3,
+      "direction": 1
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 8,
+    "fields": {
+      "agent": 4,
+      "direction": 3
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 9,
+    "fields": {
+      "agent": 4,
+      "direction": 4
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 10,
+    "fields": {
+      "agent": 5,
+      "direction": 2
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 11,
+    "fields": {
+      "agent": 6,
+      "direction": 2
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 12,
+    "fields": {
+      "agent": 7,
+      "direction": 1
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 13,
+    "fields": {
+      "agent": 8,
+      "direction": 4
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 14,
+    "fields": {
+      "agent": 9,
+      "direction": 3
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 15,
+    "fields": {
+      "agent": 10,
+      "direction": 2
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 16,
+    "fields": {
+      "agent": 11,
+      "direction": 1
+    }
+  },
+  {
+    "model": "organigramme.agent_directions",
+    "pk": 17,
+    "fields": {
+      "agent": 12,
+      "direction": 4
+    }
+  }
+]
+

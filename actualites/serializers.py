@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class ArticleSerializer(serializers.ModelSerializer):
-    author_avatar_url = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     video_url = serializers.SerializerMethodField()
     video_poster_url = serializers.SerializerMethodField()
@@ -18,25 +17,11 @@ class ArticleSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             'id', 'type', 'title', 'content', 'date', 'time',
-            'author', 'author_role', 'author_avatar', 'author_avatar_url', 'category',
-            'image', 'image_url', 'is_pinned', 'gallery_images', 'gallery_title', 'content_type',
+            'image', 'image_url', 'content_type',
             'video', 'video_url', 'video_poster', 'video_poster_url'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
-    def get_author_avatar_url(self, obj):
-        if obj.author_avatar:
-            request = self.context.get('request')
-            if request:
-                url = request.build_absolute_uri(obj.author_avatar.url)
-                logger.info(f"🖼️ [SERIALIZER] Avatar URL générée: {url}")
-                return url
-            # En cas d'absence de request, construire l'URL manuellement
-            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
-            url = f"{base_url}{settings.MEDIA_URL}{obj.author_avatar.name}"
-            logger.info(f"🖼️ [SERIALIZER] Avatar URL fallback: {url}")
-            return url
-        return None
     
     def get_image_url(self, obj):
         if obj.image:
@@ -89,9 +74,7 @@ class ArticleCreateSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             'type', 'title', 'content', 'date', 'time',
-            'author', 'author_role', 'author_avatar', 'category',
-            'image', 'is_pinned', 'gallery_images', 'gallery_title',
-            'content_type', 'video', 'video_poster'
+            'image', 'content_type', 'video', 'video_poster'
         ]
     
     def validate(self, data):

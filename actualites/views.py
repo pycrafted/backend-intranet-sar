@@ -1,6 +1,7 @@
 from rest_framework import generics, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.db.models import Q, Count
 from django.db import models
 from django.utils import timezone
@@ -17,6 +18,7 @@ class ArticleListAPIView(generics.ListAPIView):
     API endpoint pour récupérer la liste des articles avec filtrage et recherche
     """
     serializer_class = ArticleSerializer
+    permission_classes = [AllowAny]  # Permettre l'accès sans authentification
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -35,24 +37,14 @@ class ArticleListAPIView(generics.ListAPIView):
         if article_type and article_type != 'all':
             queryset = queryset.filter(type=article_type)
         
-        # Filtrage par catégorie
-        category = self.request.query_params.get('category', None)
-        if category and category != 'Toutes':
-            queryset = queryset.filter(category=category)
         
-        # Filtrage par épinglé
-        pinned = self.request.query_params.get('pinned', None)
-        if pinned is not None:
-            pinned_bool = pinned.lower() == 'true'
-            queryset = queryset.filter(is_pinned=pinned_bool)
         
         # Recherche textuelle
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
                 Q(title__icontains=search) |
-                Q(content__icontains=search) |
-                Q(author__icontains=search)
+                Q(content__icontains=search)
             )
         
         # Filtrage temporel
@@ -85,6 +77,7 @@ class ArticleDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
+    permission_classes = [AllowAny]  # Permettre l'accès sans authentification
     
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -162,6 +155,7 @@ def create_article(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def article_stats(request):
     """
     API endpoint pour récupérer les statistiques des filtres
@@ -177,12 +171,6 @@ def article_stats(request):
     
     type_stats['all'] = Article.objects.count()
     
-    # Statistiques par catégorie
-    category_stats = {}
-    for category_choice in Article.CATEGORY_CHOICES:
-        category_key = category_choice[0]
-        count = Article.objects.filter(category=category_key).count()
-        category_stats[category_key] = count
     
     # Statistiques temporelles
     now = timezone.now().date()
@@ -205,6 +193,5 @@ def article_stats(request):
     
     return Response({
         'filters': type_stats,
-        'categories': category_stats,
         'timeFilters': time_stats
     })

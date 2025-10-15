@@ -26,6 +26,9 @@ class AuthenticationMiddleware(MiddlewareMixin):
         '/api/auth/register/',
         '/api/auth/csrf/',
         '/api/auth/logout/',  # Logout nécessite une session valide
+        '/media/',  # Fichiers média (images, documents, etc.)
+        '/api/actualites/',  # Articles (lecture seule)
+        '/api/health/',  # Health check
     ]
     
     def process_request(self, request):
