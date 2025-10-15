@@ -396,3 +396,4 @@ class EventListSerializer(serializers.ModelSerializer):
             return obj.time.strftime('%H:%M')
         return None
 
+

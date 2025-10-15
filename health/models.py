@@ -17,3 +17,4 @@ class HealthCheck(models.Model):
 
 
 
+

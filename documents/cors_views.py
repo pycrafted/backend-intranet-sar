@@ -39,3 +39,4 @@ class DocumentsCORSView(View):
         response['Access-Control-Allow-Headers'] = 'Content-Type, Accept, Authorization, X-CSRFToken'
         
         return response
+
