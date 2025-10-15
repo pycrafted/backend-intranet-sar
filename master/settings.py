@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'mai',                     # Notre app MAI (chatbot basé sur CSV)
     'documents',               # Notre app documents
     'health',                  # Notre app health (endpoints de santé)
+    'organigramme',            # Notre app organigramme
 ]
 
 MIDDLEWARE = [

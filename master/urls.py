@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/accueil/', include('accueil.urls')),
     path('api/mai/', include('mai.urls')),
     path('api/documents/', include('documents.urls')),
+    path('api/organigramme/', include('organigramme.urls')),
     # URLs d'authentification sociale (OAuth 2.0)
     path('accounts/', include('allauth.urls')),
     # URL pour servir les fichiers média avec CORS
