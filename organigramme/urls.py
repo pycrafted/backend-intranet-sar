@@ -6,6 +6,7 @@ app_name = 'organigramme'
 urlpatterns = [
     # Directions
     path('directions/', views.DirectionListView.as_view(), name='direction-list'),
+    path('directions/<int:pk>/', views.DirectionDetailView.as_view(), name='direction-detail'),
     
     # Agents
     path('agents/', views.AgentListView.as_view(), name='agent-list'),
@@ -19,4 +20,11 @@ urlpatterns = [
     
     # Arborescence
     path('tree/', views.agent_tree_view, name='agent-tree'),
+    
+    # Hiérarchie
+    path('hierarchy/', views.hierarchy_info_view, name='hierarchy-info'),
+    path('hierarchy/agent/<int:agent_id>/', views.agent_hierarchy_detail_view, name='agent-hierarchy-detail'),
+    path('hierarchy/tree/', views.hierarchy_tree_view, name='hierarchy-tree'),
+    path('hierarchy/rebuild/', views.rebuild_hierarchy_view, name='rebuild-hierarchy'),
+    path('hierarchy/stats/', views.hierarchy_stats_view, name='hierarchy-stats'),
 ]

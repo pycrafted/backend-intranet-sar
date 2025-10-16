@@ -7,29 +7,44 @@ from django.db.models import Q
 from django.conf import settings
 from .models import Direction, Agent
 from .serializers import DirectionSerializer, AgentSerializer, AgentListSerializer, AgentTreeSerializer
+from .hierarchy_serializers import AgentHierarchySerializer
 
 
-class DirectionListView(generics.ListAPIView):
-    """Vue pour lister toutes les directions"""
+class DirectionListView(generics.ListCreateAPIView):
+    """Vue pour lister et créer des directions"""
     
     queryset = Direction.objects.all()
     serializer_class = DirectionSerializer
     permission_classes = [AllowAny]
 
 
-class AgentListView(generics.ListAPIView):
-    """Vue pour lister tous les agents avec filtres"""
+class DirectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Vue pour le détail, la mise à jour et la suppression d'une direction"""
+    
+    queryset = Direction.objects.all()
+    serializer_class = DirectionSerializer
+    permission_classes = [AllowAny]
+
+
+class AgentListView(generics.ListCreateAPIView):
+    """Vue pour lister et créer des agents avec filtres"""
     
     serializer_class = AgentListSerializer
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
     
     def get_queryset(self):
         queryset = Agent.objects.select_related('manager').prefetch_related('directions').all()
         
         # Filtre par direction
-        direction_name = self.request.query_params.get('direction', None)
-        if direction_name:
-            queryset = queryset.filter(directions__name=direction_name)
+        direction_id = self.request.query_params.get('direction', None)
+        if direction_id and direction_id != 'all':
+            queryset = queryset.filter(directions__id=direction_id)
+        
+        # Filtre par manager
+        manager_id = self.request.query_params.get('manager', None)
+        if manager_id and manager_id != 'all':
+            queryset = queryset.filter(manager_id=manager_id)
         
         # Recherche textuelle
         search = self.request.query_params.get('search', None)
@@ -38,18 +53,20 @@ class AgentListView(generics.ListAPIView):
                 Q(first_name__icontains=search) |
                 Q(last_name__icontains=search) |
                 Q(job_title__icontains=search) |
-                Q(email__icontains=search)
+                Q(email__icontains=search) |
+                Q(matricule__icontains=search)
             )
         
         return queryset.distinct()
 
 
-class AgentDetailView(generics.RetrieveAPIView):
-    """Vue pour le détail d'un agent"""
+class AgentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Vue pour le détail, la mise à jour et la suppression d'un agent"""
     
     queryset = Agent.objects.select_related('manager').prefetch_related('directions')
     serializer_class = AgentSerializer
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
 
 
 @api_view(['GET'])
@@ -186,3 +203,90 @@ def upload_agent_avatar(request, agent_id):
         "message": "Avatar uploadé avec succès",
         "avatar_url": avatar_url
     }, status=status.HTTP_200_OK)
+
+
+# Vues pour la hiérarchie
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def hierarchy_info_view(request):
+    """Retourne les informations de hiérarchie de tous les agents"""
+    agents = Agent.objects.all().order_by('hierarchy_level', 'last_name')
+    serializer = AgentHierarchySerializer(agents, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def agent_hierarchy_detail_view(request, agent_id):
+    """Retourne les informations de hiérarchie d'un agent spécifique"""
+    try:
+        agent = Agent.objects.get(id=agent_id)
+        serializer = AgentHierarchySerializer(agent)
+        return Response(serializer.data)
+    except Agent.DoesNotExist:
+        return Response(
+            {"error": "Agent non trouvé"}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def hierarchy_tree_view(request):
+    """Retourne l'arbre hiérarchique complet"""
+    # Trouver tous les DG (agents sans manager)
+    dgs = Agent.objects.filter(manager__isnull=True)
+    
+    def build_tree(agent):
+        """Construit récursivement l'arbre hiérarchique"""
+        subordinates = agent.subordinates.all().order_by('last_name')
+        return {
+            'agent': AgentHierarchySerializer(agent).data,
+            'subordinates': [build_tree(sub) for sub in subordinates]
+        }
+    
+    tree = [build_tree(dg) for dg in dgs]
+    return Response(tree)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def rebuild_hierarchy_view(request):
+    """Reconstruit tous les niveaux hiérarchiques"""
+    try:
+        Agent.rebuild_hierarchy_levels()
+        return Response({
+            "message": "Hiérarchie reconstruite avec succès",
+            "total_agents": Agent.objects.count()
+        })
+    except Exception as e:
+        return Response(
+            {"error": f"Erreur lors de la reconstruction: {str(e)}"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def hierarchy_stats_view(request):
+    """Retourne les statistiques de la hiérarchie"""
+    from django.db.models import Count, Max, Min
+    
+    stats = Agent.objects.aggregate(
+        total_agents=Count('id'),
+        max_level=Max('hierarchy_level'),
+        min_level=Min('hierarchy_level'),
+        dg_count=Count('id', filter=Q(manager__isnull=True)),
+        managers_count=Count('id', filter=Q(subordinates__isnull=False))
+    )
+    
+    # Compter les agents par niveau
+    level_counts = {}
+    for agent in Agent.objects.all():
+        level = agent.hierarchy_level
+        level_counts[level] = level_counts.get(level, 0) + 1
+    
+    return Response({
+        **stats,
+        'agents_by_level': level_counts
+    })

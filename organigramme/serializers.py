@@ -15,10 +15,17 @@ class AgentSerializer(serializers.ModelSerializer):
     """Serializer pour les agents avec toutes les informations"""
     
     directions = DirectionSerializer(many=True, read_only=True)
+    directions_ids = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Direction.objects.all(), 
+        source='directions',
+        write_only=True,
+        required=False
+    )
     manager_name = serializers.SerializerMethodField()
     full_name = serializers.ReadOnlyField()
     initials = serializers.ReadOnlyField()
-    department_name = serializers.SerializerMethodField()
+    main_direction_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Agent
@@ -30,17 +37,15 @@ class AgentSerializer(serializers.ModelSerializer):
             'initials',
             'job_title',
             'directions',
+            'directions_ids',
             'email',
             'phone_fixed',
             'phone_mobile',
             'matricule',
-            'position',
-            'department_name',
+            'main_direction',
+            'main_direction_name',
             'hierarchy_level',
-            'is_manager',
-            'is_active',
             'avatar',
-            'office_location',
             'manager',
             'manager_name',
             'created_at',
@@ -53,13 +58,11 @@ class AgentSerializer(serializers.ModelSerializer):
             return obj.manager.full_name
         return None
     
-    def get_department_name(self, obj):
-        """Retourne le nom du département principal"""
-        if obj.department_name:
-            return obj.department_name
-        elif obj.directions.exists():
-            return obj.directions.first().name
-        return None
+    def get_main_direction_name(self, obj):
+        """Retourne le nom de la direction principale"""
+        if obj.main_direction:
+            return obj.main_direction.name
+        return "Non renseigné"
     
     def to_representation(self, instance):
         """Override pour formater l'URL de l'avatar"""
@@ -77,10 +80,17 @@ class AgentListSerializer(serializers.ModelSerializer):
     """Serializer simplifié pour la liste des agents"""
     
     directions = DirectionSerializer(many=True, read_only=True)
+    directions_ids = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Direction.objects.all(), 
+        source='directions',
+        write_only=True,
+        required=False
+    )
     manager_name = serializers.SerializerMethodField()
     full_name = serializers.ReadOnlyField()
     initials = serializers.ReadOnlyField()
-    department_name = serializers.SerializerMethodField()
+    main_direction_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Agent
@@ -92,17 +102,15 @@ class AgentListSerializer(serializers.ModelSerializer):
             'initials',
             'job_title',
             'directions',
+            'directions_ids',
             'email',
             'phone_fixed',
             'phone_mobile',
             'matricule',
-            'position',
-            'department_name',
+            'main_direction',
+            'main_direction_name',
             'hierarchy_level',
-            'is_manager',
-            'is_active',
             'avatar',
-            'office_location',
             'manager',
             'manager_name'
         ]
@@ -113,13 +121,11 @@ class AgentListSerializer(serializers.ModelSerializer):
             return obj.manager.full_name
         return None
     
-    def get_department_name(self, obj):
-        """Retourne le nom du département principal"""
-        if obj.department_name:
-            return obj.department_name
-        elif obj.directions.exists():
-            return obj.directions.first().name
-        return None
+    def get_main_direction_name(self, obj):
+        """Retourne le nom de la direction principale"""
+        if obj.main_direction:
+            return obj.main_direction.name
+        return "Non renseigné"
     
     def to_representation(self, instance):
         """Override pour formater l'URL de l'avatar"""
@@ -141,7 +147,7 @@ class AgentTreeSerializer(serializers.ModelSerializer):
     manager_name = serializers.SerializerMethodField()
     full_name = serializers.ReadOnlyField()
     initials = serializers.ReadOnlyField()
-    department_name = serializers.SerializerMethodField()
+    main_direction_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Agent
@@ -157,13 +163,9 @@ class AgentTreeSerializer(serializers.ModelSerializer):
             'phone_fixed',
             'phone_mobile',
             'matricule',
-            'position',
-            'department_name',
+            'main_direction_name',
             'hierarchy_level',
-            'is_manager',
-            'is_active',
             'avatar',
-            'office_location',
             'manager',
             'manager_name',
             'subordinates'
@@ -180,13 +182,11 @@ class AgentTreeSerializer(serializers.ModelSerializer):
             return obj.manager.full_name
         return None
     
-    def get_department_name(self, obj):
-        """Retourne le nom du département principal"""
-        if obj.department_name:
-            return obj.department_name
-        elif obj.directions.exists():
-            return obj.directions.first().name
-        return None
+    def get_main_direction_name(self, obj):
+        """Retourne le nom de la direction principale"""
+        if obj.main_direction:
+            return obj.main_direction.name
+        return "Non renseigné"
     
     def to_representation(self, instance):
         """Override pour formater l'URL de l'avatar"""

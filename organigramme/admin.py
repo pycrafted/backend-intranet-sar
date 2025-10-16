@@ -10,31 +10,24 @@ class DirectionAdmin(admin.ModelAdmin):
 
 @admin.register(Agent)
 class AgentAdmin(admin.ModelAdmin):
-    list_display = ['full_name', 'job_title', 'matricule', 'email', 'is_manager', 'is_active']
-    list_filter = ['is_manager', 'is_active', 'hierarchy_level', 'directions', 'created_at']
+    list_display = ['full_name', 'job_title', 'matricule', 'email']
+    list_filter = ['directions', 'created_at']
     search_fields = ['first_name', 'last_name', 'email', 'matricule', 'job_title']
     filter_horizontal = ['directions']
-    readonly_fields = ['full_name', 'initials', 'hierarchy_level', 'is_manager', 'created_at', 'updated_at']
+    readonly_fields = ['full_name', 'initials', 'created_at', 'updated_at']
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['directions'].label = 'Directions associées'
+        form.base_fields['manager'].label = 'n+1'
+        return form
     
     fieldsets = (
         ('Informations personnelles', {
-            'fields': ('first_name', 'last_name', 'email', 'matricule')
+            'fields': ('first_name', 'last_name', 'email', 'matricule', 'avatar', 'phone_fixed', 'phone_mobile')
         }),
         ('Poste et hiérarchie', {
-            'fields': ('job_title', 'manager', 'hierarchy_level', 'is_manager')
-        }),
-        ('Directions', {
-            'fields': ('directions', 'department_name')
-        }),
-        ('Contact', {
-            'fields': ('phone_fixed', 'phone_mobile', 'office_location')
-        }),
-        ('Informations complémentaires', {
-            'fields': ('position', 'is_active')
-        }),
-        ('Photo de profil', {
-            'fields': ('avatar',),
-            'classes': ('collapse',)
+            'fields': ('job_title', 'manager', 'main_direction', 'directions')
         }),
         ('Métadonnées', {
             'fields': ('created_at', 'updated_at'),
