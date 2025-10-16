@@ -75,15 +75,15 @@ class EmployeeListSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 url = request.build_absolute_uri(obj.avatar.url)
-                print(f"🖼️ [AVATAR_URL] URL générée: {url}")
+                print(f"[AVATAR_URL] URL générée: {url}")
                 return url
             # Fallback si pas de request (ex: tests)
             from django.conf import settings
             base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
             url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
-            print(f"🖼️ [AVATAR_URL] URL fallback: {url}")
+            print(f"[AVATAR_URL] URL fallback: {url}")
             return url
-        print(f"🖼️ [AVATAR_URL] Aucun avatar pour {obj.full_name}")
+        print(f"[AVATAR_URL] Aucun avatar pour {obj.full_name}")
         return None
     
     def validate_phone_fixed(self, value):
@@ -142,15 +142,15 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 url = request.build_absolute_uri(obj.avatar.url)
-                print(f"🖼️ [AVATAR_URL] URL générée: {url}")
+                print(f"[AVATAR_URL] URL générée: {url}")
                 return url
             # Fallback si pas de request (ex: tests)
             from django.conf import settings
             base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
             url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
-            print(f"🖼️ [AVATAR_URL] URL fallback: {url}")
+            print(f"[AVATAR_URL] URL fallback: {url}")
             return url
-        print(f"🖼️ [AVATAR_URL] Aucun avatar pour {obj.full_name}")
+        print(f"[AVATAR_URL] Aucun avatar pour {obj.full_name}")
         return None
     
     def validate_phone_fixed(self, value):
