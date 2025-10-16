@@ -15,7 +15,7 @@ urlpatterns = [
     path('agents/<int:agent_id>/avatar/', views.upload_agent_avatar, name='agent-avatar-upload'),
     
     # Directions et agents
-    path('directions/<str:direction_slug>/agents/', views.direction_agents_view, name='direction-agents'),
+    path('directions/<str:direction_name>/agents/', views.direction_agents_view, name='direction-agents'),
     
     # Arborescence
     path('tree/', views.agent_tree_view, name='agent-tree'),

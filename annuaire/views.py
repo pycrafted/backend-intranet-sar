@@ -1,7 +1,7 @@
 from rest_framework import generics, status, filters
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
@@ -19,6 +19,7 @@ class DepartmentListCreateView(generics.ListCreateAPIView):
     """Liste et création des départements"""
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description', 'location']
     ordering_fields = ['name', 'created_at']
@@ -29,12 +30,14 @@ class DepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Détail, modification et suppression d'un département"""
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
+    permission_classes = [AllowAny]
 
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
     """Liste et création des employés"""
     queryset = Employee.objects.select_related('department')
     serializer_class = EmployeeListSerializer
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['department']
     search_fields = ['first_name', 'last_name', 'email', 'employee_id', 'position_title']
@@ -46,10 +49,12 @@ class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Détail, modification et suppression d'un employé"""
     queryset = Employee.objects.select_related('department').all()
     serializer_class = EmployeeDetailSerializer
+    permission_classes = [AllowAny]
 
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def employee_search(request):
     """Recherche avancée d'employés"""
     query = request.GET.get('q', '')
@@ -88,6 +93,7 @@ def employee_search(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def department_statistics(request):
     """Retourne les statistiques par département"""
     stats = Department.objects.annotate(
@@ -104,6 +110,7 @@ def department_statistics(request):
 # ===== NOUVELLES VUES POUR ORGANIGRAMME/ANNUAIRE CORRIGÉES =====
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def department_list_for_annuaire(request):
     """
     Liste des départements uniques des employés actifs
@@ -116,6 +123,7 @@ def department_list_for_annuaire(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def employee_hierarchy_data(request):
     """
     Données hiérarchiques pour l'organigramme
@@ -175,6 +183,7 @@ class AnnuaireUserListView(generics.ListAPIView):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def annuaire_user_search(request):
     """
     Recherche avancée d'utilisateurs pour l'annuaire
@@ -212,6 +221,7 @@ def annuaire_user_search(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def annuaire_user_detail(request, user_id):
     """
     Détail d'un utilisateur pour l'annuaire
@@ -230,6 +240,7 @@ def annuaire_user_detail(request, user_id):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def annuaire_departments_list(request):
     """
     Liste des départements uniques des utilisateurs actifs
@@ -242,6 +253,7 @@ def annuaire_departments_list(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def annuaire_statistics(request):
     """
     Statistiques pour l'annuaire
@@ -266,6 +278,7 @@ def annuaire_statistics(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def annuaire_hierarchy_data(request):
     """
     Données hiérarchiques pour l'organigramme
@@ -303,6 +316,7 @@ def annuaire_hierarchy_data(request):
 # ===== NOUVELLES VUES POUR ORGANIGRAMME/ANNUAIRE CORRIGÉES =====
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def department_list_for_annuaire(request):
     """
     Liste des départements uniques des employés actifs
@@ -315,6 +329,7 @@ def department_list_for_annuaire(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def employee_hierarchy_data(request):
     """
     Données hiérarchiques pour l'organigramme

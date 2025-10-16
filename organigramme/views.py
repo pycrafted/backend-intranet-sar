@@ -1,5 +1,6 @@
 from rest_framework import generics, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Q
@@ -13,20 +14,22 @@ class DirectionListView(generics.ListAPIView):
     
     queryset = Direction.objects.all()
     serializer_class = DirectionSerializer
+    permission_classes = [AllowAny]
 
 
 class AgentListView(generics.ListAPIView):
     """Vue pour lister tous les agents avec filtres"""
     
     serializer_class = AgentListSerializer
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = Agent.objects.select_related('manager').prefetch_related('directions').all()
         
         # Filtre par direction
-        direction_slug = self.request.query_params.get('direction', None)
-        if direction_slug:
-            queryset = queryset.filter(directions__slug=direction_slug)
+        direction_name = self.request.query_params.get('direction', None)
+        if direction_name:
+            queryset = queryset.filter(directions__name=direction_name)
         
         # Recherche textuelle
         search = self.request.query_params.get('search', None)
@@ -46,9 +49,11 @@ class AgentDetailView(generics.RetrieveAPIView):
     
     queryset = Agent.objects.select_related('manager').prefetch_related('directions')
     serializer_class = AgentSerializer
+    permission_classes = [AllowAny]
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def agent_tree_view(request):
     """Vue pour l'arborescence complète de l'organigramme"""
     
@@ -66,15 +71,16 @@ def agent_tree_view(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def agent_search_view(request):
     """Vue pour la recherche avancée d'agents"""
     
     queryset = Agent.objects.select_related('manager').prefetch_related('directions').all()
     
     # Filtre par direction
-    direction_slug = request.query_params.get('direction', None)
-    if direction_slug:
-        queryset = queryset.filter(directions__slug=direction_slug)
+    direction_name = request.query_params.get('direction', None)
+    if direction_name:
+        queryset = queryset.filter(directions__name=direction_name)
     
     # Recherche textuelle
     search = request.query_params.get('search', None)
@@ -96,6 +102,7 @@ def agent_search_view(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def agent_subordinates_view(request, agent_id):
     """Vue pour récupérer les subordonnés d'un agent"""
     
@@ -112,11 +119,12 @@ def agent_subordinates_view(request, agent_id):
 
 
 @api_view(['GET'])
-def direction_agents_view(request, direction_slug):
+@permission_classes([AllowAny])
+def direction_agents_view(request, direction_name):
     """Vue pour récupérer tous les agents d'une direction spécifique"""
     
     try:
-        direction = Direction.objects.get(slug=direction_slug)
+        direction = Direction.objects.get(name=direction_name)
         agents = direction.agents.select_related('manager').prefetch_related('directions').all()
         serializer = AgentListSerializer(agents, many=True, context={'request': request})
         return Response(serializer.data)

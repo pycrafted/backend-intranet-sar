@@ -3,10 +3,9 @@ from .models import Direction, Agent
 
 @admin.register(Direction)
 class DirectionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug', 'created_at']
+    list_display = ['name', 'created_at']
     list_filter = ['created_at']
-    search_fields = ['name', 'slug']
-    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ['name']
     readonly_fields = ['created_at', 'updated_at']
 
 @admin.register(Agent)
@@ -22,7 +21,7 @@ class AgentAdmin(admin.ModelAdmin):
             'fields': ('first_name', 'last_name', 'email', 'matricule')
         }),
         ('Poste et hiérarchie', {
-            'fields': ('job_title', 'position_title', 'manager', 'hierarchy_level', 'is_manager')
+            'fields': ('job_title', 'manager', 'hierarchy_level', 'is_manager')
         }),
         ('Directions', {
             'fields': ('directions', 'department_name')

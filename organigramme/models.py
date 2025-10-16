@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils.text import slugify
 import os
 from datetime import datetime
 
@@ -20,14 +19,9 @@ class Direction(models.Model):
     
     name = models.CharField(
         max_length=200,
+        unique=True,
         verbose_name="Nom de la direction",
         help_text="Nom complet de la direction (ex: 'Ressources Humaines')"
-    )
-    slug = models.SlugField(
-        max_length=200,
-        unique=True,
-        verbose_name="Identifiant unique",
-        help_text="Identifiant unique en minuscules pour les filtres (ex: 'rh')"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -37,10 +31,6 @@ class Direction(models.Model):
         verbose_name_plural = "Directions"
         ordering = ['name']
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -61,12 +51,6 @@ class Agent(models.Model):
         max_length=200,
         verbose_name="Poste",
         help_text="Poste ou fonction de l'agent"
-    )
-    position_title = models.CharField(
-        max_length=200,
-        verbose_name="Titre du poste",
-        help_text="Titre officiel du poste",
-        default=""
     )
     directions = models.ManyToManyField(
         Direction,
@@ -169,21 +153,19 @@ class Agent(models.Model):
         else:
             self.hierarchy_level = 1
         
-        # Définir si c'est un manager
+            
+        super().save(*args, **kwargs)
+        
+        # Définir si c'est un manager (après la sauvegarde)
         self.is_manager = self.subordinates.exists()
         
-            
-        # Synchroniser position_title avec job_title
-        if self.job_title and not self.position_title:
-            self.position_title = self.job_title
-        elif self.position_title and not self.job_title:
-            self.job_title = self.position_title
-            
         # Définir le département principal
         if not self.department_name and self.directions.exists():
             self.department_name = self.directions.first().name
             
-        super().save(*args, **kwargs)
+        # Sauvegarder à nouveau si nécessaire
+        if self.is_manager != self.subordinates.exists() or (not self.department_name and self.directions.exists()):
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.full_name} - {self.job_title}"

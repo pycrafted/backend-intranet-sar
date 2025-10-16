@@ -8,7 +8,7 @@ class DirectionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Direction
-        fields = ['id', 'name', 'slug']
+        fields = ['id', 'name']
 
 
 class AgentSerializer(serializers.ModelSerializer):
@@ -29,7 +29,6 @@ class AgentSerializer(serializers.ModelSerializer):
             'full_name',
             'initials',
             'job_title',
-            'position_title',
             'directions',
             'email',
             'phone_fixed',
@@ -92,7 +91,6 @@ class AgentListSerializer(serializers.ModelSerializer):
             'full_name',
             'initials',
             'job_title',
-            'position_title',
             'directions',
             'email',
             'phone_fixed',
@@ -154,7 +152,6 @@ class AgentTreeSerializer(serializers.ModelSerializer):
             'full_name',
             'initials',
             'job_title',
-            'position_title',
             'directions',
             'email',
             'phone_fixed',
