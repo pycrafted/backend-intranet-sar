@@ -92,6 +92,7 @@ CORS_ALLOWED_ORIGINS = [
 # Accepter toutes les URLs Vercel (pattern wildcard)
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://frontend-intranet.*\.vercel\.app$",
+    r"^https://.*\.vercel\.app$",  # Accepter toutes les URLs Vercel
 ]
 
 # Nettoyer les URLs vides
