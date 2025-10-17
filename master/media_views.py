@@ -57,9 +57,14 @@ class MediaView(View):
         logger.info(f"📤 [MEDIA_VIEW] Réponse créée avec content-type: {content_type}")
         
         # Headers CORS pour permettre l'accès depuis Vercel
-        response['Access-Control-Allow-Origin'] = '*'
+        origin = request.META.get('HTTP_ORIGIN', '')
+        if origin and (origin.endswith('.vercel.app') or origin in ['http://localhost:3000', 'https://localhost:3000']):
+            response['Access-Control-Allow-Origin'] = origin
+        else:
+            response['Access-Control-Allow-Origin'] = '*'
         response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        response['Access-Control-Allow-Credentials'] = 'false'  # Pas de cookies pour les images
         response['Access-Control-Max-Age'] = '86400'  # 24 heures
         
         # Headers de cache pour optimiser les performances
@@ -71,8 +76,13 @@ class MediaView(View):
     def options(self, request, path):
         """Gérer les requêtes OPTIONS pour CORS"""
         response = HttpResponse()
-        response['Access-Control-Allow-Origin'] = '*'
+        origin = request.META.get('HTTP_ORIGIN', '')
+        if origin and (origin.endswith('.vercel.app') or origin in ['http://localhost:3000', 'https://localhost:3000']):
+            response['Access-Control-Allow-Origin'] = origin
+        else:
+            response['Access-Control-Allow-Origin'] = '*'
         response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        response['Access-Control-Allow-Credentials'] = 'false'
         response['Access-Control-Max-Age'] = '86400'
         return response

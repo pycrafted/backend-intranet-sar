@@ -34,6 +34,16 @@ class AgentListView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser, FormParser]
     
     def get_queryset(self):
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"🏢 [ORGANIGRAMME_API] AgentListView - Requête agents", {
+            'origin': self.request.META.get('HTTP_ORIGIN', 'Unknown'),
+            'user_agent': self.request.META.get('HTTP_USER_AGENT', 'Unknown'),
+            'method': self.request.method,
+            'query_params': dict(self.request.query_params)
+        })
+        
         queryset = Agent.objects.select_related('manager').prefetch_related('directions').all()
         
         # Filtre par direction
@@ -57,7 +67,16 @@ class AgentListView(generics.ListCreateAPIView):
                 Q(matricule__icontains=search)
             )
         
-        return queryset.distinct()
+        result = queryset.distinct()
+        logger.info(f"🏢 [ORGANIGRAMME_API] AgentListView - Résultat", {
+            'count': result.count(),
+            'filters_applied': {
+                'direction_id': direction_id,
+                'manager_id': manager_id,
+                'search': search
+            }
+        })
+        return result
 
 
 class AgentDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -73,16 +92,26 @@ class AgentDetailView(generics.RetrieveUpdateDestroyAPIView):
 @permission_classes([AllowAny])
 def agent_tree_view(request):
     """Vue pour l'arborescence complète de l'organigramme"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"🏢 [ORGANIGRAMME_API] agent_tree_view - Requête arbre", {
+        'origin': request.META.get('HTTP_ORIGIN', 'Unknown'),
+        'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown'),
+        'method': request.method
+    })
     
     # Trouver le CEO (agent sans manager)
     ceo = Agent.objects.filter(manager__isnull=True).select_related('manager').prefetch_related('directions').first()
     
     if not ceo:
+        logger.warning("🏢 [ORGANIGRAMME_API] Aucun CEO trouvé")
         return Response(
             {"error": "Aucun CEO trouvé (agent sans manager)"},
             status=status.HTTP_404_NOT_FOUND
         )
     
+    logger.info(f"🏢 [ORGANIGRAMME_API] CEO trouvé: {ceo.full_name}")
     serializer = AgentTreeSerializer(ceo, context={'request': request})
     return Response(serializer.data)
 
