@@ -272,8 +272,7 @@ if not CLAUDE_API_KEY:
 # RENDER SPECIFIC - Configuration spécifique à Render
 # =============================================================================
 
-# URL de base pour les médias
-BASE_URL = config('BASE_URL', default='https://backend-intranet-sar-1.onrender.com')
+# URL de base pour les médias (déjà définie plus haut)
 
 # Port pour Render (fourni via la variable d'environnement PORT)
 PORT = config('PORT', default='8000', cast=int)
