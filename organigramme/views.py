@@ -33,6 +33,12 @@ class AgentListView(generics.ListCreateAPIView):
     permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
     
+    def get_serializer_context(self):
+        """Ajouter le contexte de requête pour la construction des URLs absolues"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     def get_queryset(self):
         import logging
         logger = logging.getLogger(__name__)
@@ -92,6 +98,12 @@ class AgentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = AgentSerializer
     permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
+    
+    def get_serializer_context(self):
+        """Ajouter le contexte de requête pour la construction des URLs absolues"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 @api_view(['GET'])

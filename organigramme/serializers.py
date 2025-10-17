@@ -69,7 +69,13 @@ class AgentSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if instance.avatar:
             # Construire l'URL complète de l'avatar
-            data['avatar'] = f"http://localhost:8000{settings.MEDIA_URL}{instance.avatar}"
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(instance.avatar.url)
+            else:
+                # Fallback pour la production
+                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                data['avatar'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
         else:
             # Avatar par défaut si aucun avatar n'est uploadé
             data['avatar'] = None
@@ -132,7 +138,13 @@ class AgentListSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if instance.avatar:
             # Construire l'URL complète de l'avatar
-            data['avatar'] = f"http://localhost:8000{settings.MEDIA_URL}{instance.avatar}"
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(instance.avatar.url)
+            else:
+                # Fallback pour la production
+                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                data['avatar'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
         else:
             # Avatar par défaut si aucun avatar n'est uploadé
             data['avatar'] = None
@@ -193,7 +205,13 @@ class AgentTreeSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         if instance.avatar:
             # Construire l'URL complète de l'avatar
-            data['avatar'] = f"http://localhost:8000{settings.MEDIA_URL}{instance.avatar}"
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(instance.avatar.url)
+            else:
+                # Fallback pour la production
+                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                data['avatar'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
         else:
             # Avatar par défaut si aucun avatar n'est uploadé
             data['avatar'] = None

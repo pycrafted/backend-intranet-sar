@@ -28,6 +28,9 @@ ALLOWED_HOSTS = [
     config('FRONTEND_URL', default='').replace('https://', '').replace('http://', ''),
 ]
 
+# URL de base pour la construction des URLs absolues
+BASE_URL = f"https://{config('RENDER_EXTERNAL_HOSTNAME', default='backend-intranet-sar-1.onrender.com')}"
+
 # Nettoyer les hosts vides
 ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
 
