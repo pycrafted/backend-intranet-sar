@@ -68,14 +68,20 @@ class AgentListView(generics.ListCreateAPIView):
             )
         
         result = queryset.distinct()
+        count = result.count()
         logger.info(f"🏢 [ORGANIGRAMME_API] AgentListView - Résultat", {
-            'count': result.count(),
+            'count': count,
             'filters_applied': {
                 'direction_id': direction_id,
                 'manager_id': manager_id,
                 'search': search
             }
         })
+        
+        # Si aucun agent trouvé, retourner une liste vide au lieu d'erreur
+        if count == 0:
+            logger.info("🏢 [ORGANIGRAMME_API] Aucun agent trouvé, retour d'une liste vide")
+        
         return result
 
 
@@ -101,15 +107,46 @@ def agent_tree_view(request):
         'method': request.method
     })
     
+    # Vérifier s'il y a des agents dans la base de données
+    total_agents = Agent.objects.count()
+    logger.info(f"🏢 [ORGANIGRAMME_API] Nombre total d'agents: {total_agents}")
+    
+    if total_agents == 0:
+        logger.warning("🏢 [ORGANIGRAMME_API] Aucun agent dans la base de données")
+        # Retourner une structure vide au lieu d'une erreur 404
+        return Response({
+            "id": None,
+            "full_name": "Aucun employé",
+            "job_title": "Organigramme vide",
+            "email": "",
+            "phone": "",
+            "avatar": None,
+            "main_direction_name": "Aucune direction",
+            "manager": None,
+            "hierarchy_level": 0,
+            "subordinates": []
+        })
+    
     # Trouver le CEO (agent sans manager)
     ceo = Agent.objects.filter(manager__isnull=True).select_related('manager').prefetch_related('directions').first()
     
     if not ceo:
-        logger.warning("🏢 [ORGANIGRAMME_API] Aucun CEO trouvé")
-        return Response(
-            {"error": "Aucun CEO trouvé (agent sans manager)"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        logger.warning("🏢 [ORGANIGRAMME_API] Aucun CEO trouvé, utilisation du premier agent")
+        # Si pas de CEO, utiliser le premier agent disponible
+        ceo = Agent.objects.first()
+        if not ceo:
+            return Response({
+                "id": None,
+                "full_name": "Aucun employé",
+                "job_title": "Organigramme vide",
+                "email": "",
+                "phone": "",
+                "avatar": None,
+                "main_direction_name": "Aucune direction",
+                "manager": None,
+                "hierarchy_level": 0,
+                "subordinates": []
+            })
     
     logger.info(f"🏢 [ORGANIGRAMME_API] CEO trouvé: {ceo.full_name}")
     serializer = AgentTreeSerializer(ceo, context={'request': request})
