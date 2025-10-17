@@ -66,14 +66,14 @@ def employee_search(request):
     
     if query:
         queryset = queryset.filter(
-            Q(first_name__icontains=query) |
-            Q(last_name__icontains=query) |
-            Q(email__icontains=query) |
-            Q(employee_id__icontains=query) |
-            Q(position_title__icontains=query) |
-            Q(phone_fixed__icontains=query) |
-            Q(phone_mobile__icontains=query) |
-            Q(department__name__icontains=query)
+            Q(first_name__istartswith=query) |
+            Q(last_name__istartswith=query) |
+            Q(email__istartswith=query) |
+            Q(employee_id__istartswith=query) |
+            Q(position_title__istartswith=query) |
+            Q(phone_fixed__istartswith=query) |
+            Q(phone_mobile__istartswith=query) |
+            Q(department__name__istartswith=query)
         )
     
     if department:
