@@ -102,7 +102,7 @@ DATABASES = {
         'USER': config('POSTGRES_USER', default='sar_user'),
         'PASSWORD': config('POSTGRES_PASSWORD', default='sar123'),
         'HOST': config('POSTGRES_HOST', default='localhost'),  # localhost par défaut
-        'PORT': config('POSTGRES_PORT', default='5433'),  # Port 5433 pour dev local
+        'PORT': config('POSTGRES_PORT', default='5432'),  # Port 5432 par défaut PostgreSQL
     }
 }
 

@@ -345,3 +345,4 @@ class Command(BaseCommand):
         for dept in Department.objects.all():
             count = dept.employees.count()
             self.stdout.write(f'  {dept.name}: {count} employé(s)')
+
