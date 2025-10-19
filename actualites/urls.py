@@ -1,6 +1,5 @@
 from django.urls import path
 from . import views
-from . import test_views
 
 urlpatterns = [
     # Liste des articles avec filtrage et recherche
@@ -15,9 +14,5 @@ urlpatterns = [
     
     # Statistiques des filtres
     path('stats/', views.article_stats, name='article-stats'),
-    
-    # Endpoints de test
-    path('test/images/', test_views.test_images_endpoint, name='test-images'),
-    path('test/images/<str:image_name>/', test_views.test_single_image, name='test-single-image'),
 ]
 
