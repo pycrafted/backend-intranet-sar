@@ -26,15 +26,26 @@ class ArticleSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         if obj.image:
             request = self.context.get('request')
+            logger.info(f"🖼️ [SERIALIZER] Génération URL image pour article {obj.id}")
+            logger.info(f"🖼️ [SERIALIZER] Image field: {obj.image}")
+            logger.info(f"🖼️ [SERIALIZER] Image name: {obj.image.name}")
+            logger.info(f"🖼️ [SERIALIZER] Image url: {obj.image.url}")
+            logger.info(f"🖼️ [SERIALIZER] Request context: {request is not None}")
+            
             if request:
                 url = request.build_absolute_uri(obj.image.url)
-                logger.info(f"🖼️ [SERIALIZER] Image URL générée: {url}")
+                logger.info(f"🖼️ [SERIALIZER] Image URL générée avec request: {url}")
+                logger.info(f"🖼️ [SERIALIZER] Request host: {request.META.get('HTTP_HOST', 'Unknown')}")
+                logger.info(f"🖼️ [SERIALIZER] Request scheme: {request.scheme}")
                 return url
             # En cas d'absence de request, construire l'URL manuellement
             base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
             url = f"{base_url}{settings.MEDIA_URL}{obj.image.name}"
             logger.info(f"🖼️ [SERIALIZER] Image URL fallback: {url}")
+            logger.info(f"🖼️ [SERIALIZER] BASE_URL: {base_url}")
+            logger.info(f"🖼️ [SERIALIZER] MEDIA_URL: {settings.MEDIA_URL}")
             return url
+        logger.info(f"🖼️ [SERIALIZER] Aucune image pour l'article {obj.id}")
         return None
     
     def get_video_url(self, obj):

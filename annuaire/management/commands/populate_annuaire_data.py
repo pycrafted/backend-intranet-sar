@@ -347,3 +347,4 @@ class Command(BaseCommand):
             self.stdout.write(f'  {dept.name}: {count} employé(s)')
 
 
+

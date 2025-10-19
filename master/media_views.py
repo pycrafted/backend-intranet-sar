@@ -20,18 +20,26 @@ class MediaView(View):
     """
     
     def get(self, request, path):
-        # Log de débogage
+        # Log de débogage détaillé
         logger.info(f"🖼️ [MEDIA_VIEW] Requête fichier média: {path}")
         logger.info(f"🖼️ [MEDIA_VIEW] Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
         logger.info(f"🖼️ [MEDIA_VIEW] User-Agent: {request.META.get('HTTP_USER_AGENT', 'Unknown')}")
+        logger.info(f"🖼️ [MEDIA_VIEW] Host: {request.META.get('HTTP_HOST', 'Unknown')}")
+        logger.info(f"🖼️ [MEDIA_VIEW] Referer: {request.META.get('HTTP_REFERER', 'Unknown')}")
+        logger.info(f"🖼️ [MEDIA_VIEW] Request method: {request.method}")
+        logger.info(f"🖼️ [MEDIA_VIEW] Request headers: {dict(request.META)}")
         
         # Construire le chemin complet vers le fichier
         file_path = os.path.join(settings.MEDIA_ROOT, path)
         logger.info(f"🖼️ [MEDIA_VIEW] Chemin fichier: {file_path}")
+        logger.info(f"🖼️ [MEDIA_VIEW] MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        logger.info(f"🖼️ [MEDIA_VIEW] Chemin absolu: {os.path.abspath(file_path)}")
         
         # Vérifier que le fichier existe
         if not os.path.exists(file_path):
             logger.error(f"❌ [MEDIA_VIEW] Fichier non trouvé: {file_path}")
+            logger.error(f"❌ [MEDIA_VIEW] Liste des fichiers dans MEDIA_ROOT: {os.listdir(settings.MEDIA_ROOT) if os.path.exists(settings.MEDIA_ROOT) else 'MEDIA_ROOT n\'existe pas'}")
+            logger.error(f"❌ [MEDIA_VIEW] Liste des fichiers dans articles: {os.listdir(os.path.join(settings.MEDIA_ROOT, 'articles')) if os.path.exists(os.path.join(settings.MEDIA_ROOT, 'articles')) else 'Dossier articles n\'existe pas'}")
             raise Http404("Fichier non trouvé")
         
         # Vérifier que le chemin est sécurisé (pas de ..)
@@ -58,14 +66,25 @@ class MediaView(View):
         
         # Headers CORS pour permettre l'accès depuis Vercel
         origin = request.META.get('HTTP_ORIGIN', '')
-        if origin and (origin.endswith('.vercel.app') or origin in ['http://localhost:3000', 'https://localhost:3000']):
+        logger.info(f"🌐 [MEDIA_VIEW] Origin reçu: {origin}")
+        
+        # Accepter toutes les origines Vercel et localhost
+        if origin and (
+            origin.endswith('.vercel.app') or 
+            origin.startswith('https://frontend-intranet') or
+            origin in ['http://localhost:3000', 'https://localhost:3000', 'http://127.0.0.1:3000']
+        ):
             response['Access-Control-Allow-Origin'] = origin
+            logger.info(f"✅ [MEDIA_VIEW] CORS autorisé pour: {origin}")
         else:
             response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+            logger.info(f"🌍 [MEDIA_VIEW] CORS ouvert pour tous: {origin}")
+            
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS, HEAD'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma'
         response['Access-Control-Allow-Credentials'] = 'false'  # Pas de cookies pour les images
         response['Access-Control-Max-Age'] = '86400'  # 24 heures
+        response['Access-Control-Expose-Headers'] = 'Content-Length, Content-Type, Cache-Control, ETag'
         
         # Headers de cache pour optimiser les performances
         response['Cache-Control'] = 'public, max-age=31536000'  # 1 an
@@ -75,14 +94,27 @@ class MediaView(View):
     
     def options(self, request, path):
         """Gérer les requêtes OPTIONS pour CORS"""
+        logger.info(f"🔄 [MEDIA_VIEW] Requête OPTIONS pour: {path}")
+        logger.info(f"🔄 [MEDIA_VIEW] Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
+        
         response = HttpResponse()
         origin = request.META.get('HTTP_ORIGIN', '')
-        if origin and (origin.endswith('.vercel.app') or origin in ['http://localhost:3000', 'https://localhost:3000']):
+        
+        # Accepter toutes les origines Vercel et localhost
+        if origin and (
+            origin.endswith('.vercel.app') or 
+            origin.startswith('https://frontend-intranet') or
+            origin in ['http://localhost:3000', 'https://localhost:3000', 'http://127.0.0.1:3000']
+        ):
             response['Access-Control-Allow-Origin'] = origin
+            logger.info(f"✅ [MEDIA_VIEW] CORS OPTIONS autorisé pour: {origin}")
         else:
             response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+            logger.info(f"🌍 [MEDIA_VIEW] CORS OPTIONS ouvert pour tous: {origin}")
+            
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS, HEAD'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma'
         response['Access-Control-Allow-Credentials'] = 'false'
         response['Access-Control-Max-Age'] = '86400'
+        response['Access-Control-Expose-Headers'] = 'Content-Length, Content-Type, Cache-Control, ETag'
         return response
