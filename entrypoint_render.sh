@@ -7,8 +7,8 @@ echo "🚀 Démarrage du backend Django SAR sur Render..."
 # CONFIGURATION DE L'ENVIRONNEMENT
 # =============================================================================
 
-# Utiliser les settings de production
-export DJANGO_SETTINGS_MODULE=master.settings_production
+# Utiliser les settings Render
+export DJANGO_SETTINGS_MODULE=master.settings_render
 
 # Afficher les informations de configuration
 echo "📋 Configuration:"
