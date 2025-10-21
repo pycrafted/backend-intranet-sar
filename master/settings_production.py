@@ -131,71 +131,41 @@ RAG_MIGRATION_CONFIG = {
 }
 
 # ========================================
-# LOGGING PRODUCTION
+# LOGGING PRODUCTION (RENDER COMPATIBLE)
 # ========================================
 
+# Configuration de logging compatible avec Render - CONSOLE UNIQUEMENT
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
-        },
-        'json': {
-            'format': '{"level": "%(levelname)s", "time": "%(asctime)s", "module": "%(module)s", "message": "%(message)s"}',
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/sar_rag/django.log',
-            'maxBytes': 1024*1024*15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
-        'rag_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/sar_rag/rag.log',
-            'maxBytes': 1024*1024*15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'json',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/sar_rag/error.log',
-            'maxBytes': 1024*1024*15,  # 15MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
         'console': {
-            'level': 'WARNING',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'mai': {
-            'handlers': ['rag_file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'django.request': {
-            'handlers': ['error_file', 'console'],
+            'handlers': ['console'],
             'level': 'ERROR',
-            'propagate': True,
+            'propagate': False,
         },
     },
 }
@@ -221,9 +191,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # PERFORMANCE ET OPTIMISATION
 # ========================================
 
-# Configuration des fichiers statiques
-STATIC_ROOT = '/var/www/sar_rag/static/'
-MEDIA_ROOT = '/var/www/sar_rag/media/'
+# Configuration des fichiers statiques (Render compatible)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Configuration de la base de données
 DATABASE_ROUTERS = []
@@ -256,10 +226,10 @@ ALERT_SLACK_WEBHOOK = config('ALERT_SLACK_WEBHOOK', default=None)
 # CONFIGURATION SPÉCIFIQUE RAG
 # ========================================
 
-# Configuration des modèles d'embedding
+# Configuration des modèles d'embedding (Render compatible)
 EMBEDDING_MODEL_CONFIG = {
     'model_name': 'all-MiniLM-L6-v2',
-    'cache_dir': '/var/cache/sar_rag/models/',
+    'cache_dir': os.path.join(BASE_DIR, 'cache', 'models'),
     'max_sequence_length': 512,
     'batch_size': 100,
     'device': 'cpu',  # ou 'cuda' si GPU disponible
@@ -304,10 +274,10 @@ MAX_MEMORY_USAGE = 0.8  # 80% de la RAM disponible
 # ========================================
 
 BACKUP_CONFIG = {
-    'enabled': True,
+    'enabled': False,  # Désactivé sur Render
     'schedule': '0 1 * * *',  # Tous les jours à 1h du matin
     'retention_days': 30,
-    'backup_dir': '/var/backups/sar_rag/',
+    'backup_dir': os.path.join(BASE_DIR, 'backups'),
     'include_media': True,
     'include_static': True,
 }

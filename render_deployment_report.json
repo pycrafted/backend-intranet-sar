@@ -1,0 +1,29 @@
+{
+  "deployment_time": "2025-10-21T16:14:56.306114",
+  "duration_seconds": 4.05,
+  "platform": "Render",
+  "status": "SUCCESS",
+  "configuration": {
+    "django_settings": "master.settings_production",
+    "debug": false,
+    "allowed_hosts": "backend-intranet-sar-1.onrender.com,localhost,127.0.0.1",
+    "static_files": "staticfiles/",
+    "media_files": "media/"
+  },
+  "next_steps": [
+    "Déployer sur Render avec le fichier render.yaml",
+    "Configurer les variables d'environnement sur Render",
+    "Vérifier les logs de déploiement",
+    "Tester l'API: https://backend-intranet-sar-1.onrender.com/api/health/",
+    "Configurer le monitoring"
+  ],
+  "render_config": {
+    "build_command": "pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput",
+    "start_command": "./entrypoint_render_fixed.sh",
+    "environment_variables": {
+      "DJANGO_SETTINGS_MODULE": "master.settings_production",
+      "DEBUG": "False",
+      "ALLOWED_HOSTS": "backend-intranet-sar-1.onrender.com,localhost,127.0.0.1"
+    }
+  }
+}
