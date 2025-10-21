@@ -232,13 +232,55 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 FILE_UPLOAD_PERMISSIONS = 0o644
 
-# Configuration RAG
+# Configuration RAG - Phase 6 Optimisée
 RAG_CONFIG = {
     'EMBEDDING_MODEL': 'all-MiniLM-L6-v2',
     'VECTOR_DIMENSION': 384,
     'MAX_CONTEXT_LENGTH': 2000,
-    'SIMILARITY_THRESHOLD': 0.4,  # Seuil abaissé pour trouver plus de résultats
+    'SIMILARITY_THRESHOLD': 0.7,  # Seuil optimisé pour la qualité
     'MAX_DOCUMENTS': 5,
+    'CACHE_ENABLED': True,
+    'CACHE_TTL': 3600,  # 1 heure
+    'BATCH_SIZE': 50,  # Optimisé pour all-MiniLM-L6-v2
+    'PERFORMANCE_MODE': True
+}
+
+# Configuration Redis - Phase 6
+REDIS_HOST = config('REDIS_HOST', default='localhost')
+REDIS_PORT = config('REDIS_PORT', default=6379)
+REDIS_DB = config('REDIS_DB', default=0)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)
+
+# Configuration du cache Redis optimisé
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': REDIS_PASSWORD,
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 20,
+                'retry_on_timeout': True,
+                'socket_keepalive': True,
+                'socket_keepalive_options': {},
+            }
+        }
+    }
+}
+
+# Configuration de migration RAG - Phase 6
+RAG_MIGRATION_CONFIG = {
+    'ENABLE_VECTOR_SEARCH': True,
+    'ENABLE_HEURISTIC_FALLBACK': True,
+    'VECTOR_THRESHOLD': 0.7,
+    'HEURISTIC_THRESHOLD': 0.2,
+    'MIGRATION_PHASE': 'hybrid',  # Migration progressive
+    'EMBEDDING_MODEL': 'all-MiniLM-L6-v2',
+    'CACHE_ENABLED': True,
+    'CACHE_TTL': 3600,
+    'BATCH_SIZE': 50,
+    'PERFORMANCE_MODE': True
 }
 
 # Configuration des modèles RAG

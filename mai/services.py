@@ -227,8 +227,8 @@ class MAIService:
         if not self.qa_pairs:
             return None
         
-        print(f"🔍 [MAI_SEARCH] Question utilisateur: '{user_question}'")
-        print(f"🔍 [MAI_SEARCH] Seuil de similarité: {threshold}")
+        print(f"[MAI_SEARCH] Question utilisateur: '{user_question}'")
+        print(f"[MAI_SEARCH] Seuil de similarité: {threshold}")
         
         best_match = None
         best_similarity = 0.0
@@ -246,15 +246,15 @@ class MAIService:
                     'answer': qa_pair['answer'],
                     'similarity': similarity
                 }
-                print(f"✅ [MAI_SEARCH] Nouvelle meilleure correspondance: {similarity:.3f} - '{qa_pair['question']}'")
+                print(f"[MAI_SEARCH] Nouvelle meilleure correspondance: {similarity:.3f} - '{qa_pair['question']}'")
         
         # Afficher les 5 meilleures similarités pour debug
         all_similarities.sort(key=lambda x: x[2], reverse=True)
-        print(f"🔍 [MAI_SEARCH] Top 5 similarités:")
+        print(f"[MAI_SEARCH] Top 5 similarités:")
         for i, (idx, question, sim) in enumerate(all_similarities[:5]):
             print(f"  {i+1}. {sim:.3f} - '{question}'")
         
-        print(f"🔍 [MAI_SEARCH] Meilleure correspondance finale: {best_similarity:.3f}")
+        print(f"[MAI_SEARCH] Meilleure correspondance finale: {best_similarity:.3f}")
         
         return best_match
     

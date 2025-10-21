@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-10-21T15:10:32.079405",
+  "total_duration": 11.75921082496643,
+  "test_results": [
+    {
+      "test_name": "Connexion Redis",
+      "success": true,
+      "details": "Statut: excellent",
+      "timestamp": "2025-10-21T15:10:20.321073"
+    },
+    {
+      "test_name": "Connexion base de données",
+      "success": true,
+      "details": "Documents: 2978",
+      "timestamp": "2025-10-21T15:10:20.353853"
+    },
+    {
+      "test_name": "Service d'embedding",
+      "success": false,
+      "details": "Dimension: 384, Temps: 3757.96ms, Valide: True",
+      "timestamp": "2025-10-21T15:10:24.112416"
+    },
+    {
+      "test_name": "Recherche vectorielle",
+      "success": true,
+      "details": "Résultats: 1, Temps: 20.69ms",
+      "timestamp": "2025-10-21T15:10:24.133234"
+    },
+    {
+      "test_name": "Opérations de cache",
+      "success": true,
+      "details": "Cache embedding: True, Cache search: True",
+      "timestamp": "2025-10-21T15:10:24.135266"
+    },
+    {
+      "test_name": "Santé des index",
+      "success": false,
+      "details": "Statut: missing",
+      "timestamp": "2025-10-21T15:10:24.141363"
+    },
+    {
+      "test_name": "Système de monitoring",
+      "success": true,
+      "details": "Métriques: True, Santé: True",
+      "timestamp": "2025-10-21T15:10:26.174375"
+    },
+    {
+      "test_name": "Service d'optimisation",
+      "success": true,
+      "details": "Score santé: 70.0",
+      "timestamp": "2025-10-21T15:10:27.189701"
+    },
+    {
+      "test_name": "Optimisation complète",
+      "success": true,
+      "details": "Durée: 4.89s, Succès: True",
+      "timestamp": "2025-10-21T15:10:32.078866"
+    }
+  ]
+}

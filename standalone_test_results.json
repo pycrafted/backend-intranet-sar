@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-10-21T15:34:43.590634",
+  "total_duration": 0.0015385150909423828,
+  "test_results": [
+    {
+      "test_name": "Redis Connection",
+      "success": false,
+      "details": "Error: No module named 'redis'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.589479"
+    },
+    {
+      "test_name": "Embedding Model",
+      "success": false,
+      "details": "Error: No module named 'sentence_transformers'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.589698"
+    },
+    {
+      "test_name": "Database Connection",
+      "success": false,
+      "details": "Error: No module named 'psycopg2'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.589893"
+    },
+    {
+      "test_name": "Vector Search SQL",
+      "success": false,
+      "details": "Error: No module named 'psycopg2'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.590076"
+    },
+    {
+      "test_name": "Cache Operations",
+      "success": false,
+      "details": "Error: No module named 'redis'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.590255"
+    },
+    {
+      "test_name": "Performance Benchmark",
+      "success": false,
+      "details": "Error: No module named 'sentence_transformers'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.590429"
+    },
+    {
+      "test_name": "Data Quality",
+      "success": false,
+      "details": "Error: No module named 'psycopg2'",
+      "duration_ms": 0,
+      "timestamp": "2025-10-21T15:34:43.590617"
+    }
+  ],
+  "summary": {
+    "total_tests": 7,
+    "passed_tests": 0,
+    "failed_tests": 7
+  }
+}

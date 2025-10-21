@@ -1,171 +1,138 @@
 """
-Configuration de production pour le déploiement sur Render
-Basée sur settings.py mais optimisée pour la production
+Configuration de production pour le système RAG SAR.
+Optimisée pour la performance, la sécurité et la scalabilité.
 """
-
-from .settings import *
 import os
 from decouple import config
+from .settings import *
 
-# =============================================================================
-# SÉCURITÉ - Configuration critique pour la production
-# =============================================================================
+# ========================================
+# CONFIGURATION DE PRODUCTION
+# ========================================
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = False
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='')
+# ========================================
+# SÉCURITÉ RENFORCÉE
+# ========================================
 
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY est obligatoire en production")
-
-# Hosts autorisés - Render fournit l'URL via RENDER_EXTERNAL_HOSTNAME
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    config('RENDER_EXTERNAL_HOSTNAME', default=''),
-    config('FRONTEND_URL', default='').replace('https://', '').replace('http://', ''),
+# Configuration CORS pour production
+CORS_ALLOWED_ORIGINS = [
+    "https://frontend-intranet-sar-1.onrender.com",
+    "https://intranet-sar.com",
+    "https://www.intranet-sar.com",
 ]
 
-# URL de base pour la construction des URLs absolues
-BASE_URL = f"https://{config('RENDER_EXTERNAL_HOSTNAME', default='backend-intranet-sar-1.onrender.com')}"
+CORS_ALLOW_CREDENTIALS = True
 
-# Nettoyer les hosts vides
-ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
+# Configuration CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "https://frontend-intranet-sar-1.onrender.com",
+    "https://intranet-sar.com",
+    "https://www.intranet-sar.com",
+]
 
-# =============================================================================
-# BASE DE DONNÉES - Configuration Render PostgreSQL
-# =============================================================================
+# Sécurité des cookies
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+# ========================================
+# BASE DE DONNÉES PRODUCTION
+# ========================================
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default=''),
-        'USER': config('POSTGRES_USER', default=''),
+        'NAME': config('POSTGRES_DB', default='sar_production'),
+        'USER': config('POSTGRES_USER', default='sar_user'),
         'PASSWORD': config('POSTGRES_PASSWORD', default=''),
-        'HOST': config('POSTGRES_HOST', default=''),
+        'HOST': config('POSTGRES_HOST', default='localhost'),
         'PORT': config('POSTGRES_PORT', default='5432'),
         'OPTIONS': {
-            'sslmode': 'require',  # SSL obligatoire sur Render
-        }
+            'sslmode': 'require',
+            'connect_timeout': 30,
+            'options': '-c default_transaction_isolation=read_committed'
+        },
+        'CONN_MAX_AGE': 600,  # 10 minutes
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 
-# Vérifier que la configuration DB est complète
-required_db_vars = ['POSTGRES_DB', 'POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_HOST']
-missing_vars = [var for var in required_db_vars if not config(var, default='')]
-if missing_vars:
-    raise ValueError(f"Variables de base de données manquantes: {missing_vars}")
+# ========================================
+# CACHE REDIS PRODUCTION
+# ========================================
 
-# =============================================================================
-# FICHIERS STATIQUES - Configuration pour Render
-# =============================================================================
+REDIS_HOST = config('REDIS_HOST', default='localhost')
+REDIS_PORT = config('REDIS_PORT', default=6379)
+REDIS_DB = config('REDIS_DB', default=0)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)
 
-# Chemin vers les fichiers statiques
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': REDIS_PASSWORD,
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+                'socket_keepalive': True,
+                'socket_keepalive_options': {},
+                'health_check_interval': 30,
+            },
+            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+        },
+        'TIMEOUT': 300,  # 5 minutes
+        'VERSION': 1,
+        'KEY_PREFIX': 'sar_rag',
+    }
+}
 
-# Configuration WhiteNoise pour servir les fichiers statiques
-MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+# ========================================
+# CONFIGURATION RAG PRODUCTION
+# ========================================
 
-# Configuration des fichiers statiques
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+RAG_CONFIG = {
+    'EMBEDDING_MODEL': 'all-MiniLM-L6-v2',
+    'VECTOR_DIMENSION': 384,
+    'MAX_CONTEXT_LENGTH': 2000,
+    'SIMILARITY_THRESHOLD': 0.7,
+    'MAX_DOCUMENTS': 5,
+    'CACHE_ENABLED': True,
+    'CACHE_TTL': 3600,  # 1 heure
+    'BATCH_SIZE': 100,  # Optimisé pour production
+    'PERFORMANCE_MODE': True,
+    'ENABLE_MONITORING': True,
+    'LOG_LEVEL': 'INFO',
+    'MAX_CONCURRENT_REQUESTS': 100,
+    'RATE_LIMIT_PER_MINUTE': 1000,
+}
 
-# Configuration des fichiers média (optionnel - utiliser un service externe en production)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Configuration de migration progressive
+RAG_MIGRATION_CONFIG = {
+    'ENABLE_VECTOR_SEARCH': True,
+    'ENABLE_HEURISTIC_FALLBACK': True,
+    'VECTOR_THRESHOLD': 0.7,
+    'HEURISTIC_THRESHOLD': 0.2,
+    'MIGRATION_PHASE': 'production',  # Phase production
+    'EMBEDDING_MODEL': 'all-MiniLM-L6-v2',
+    'CACHE_ENABLED': True,
+    'CACHE_TTL': 3600,
+    'BATCH_SIZE': 100,
+    'PERFORMANCE_MODE': True,
+    'MONITORING_ENABLED': True,
+    'AUTO_OPTIMIZATION': True,
+    'OPTIMIZATION_INTERVAL_HOURS': 24,
+}
 
-# =============================================================================
-# CORS - Configuration pour le frontend
-# =============================================================================
-
-# URL du frontend (peut être sur Render ou ailleurs)
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
-
-CORS_ALLOWED_ORIGINS = [
-    FRONTEND_URL,
-    "http://localhost:3000",  # Fallback pour le développement
-    "https://frontend-intranet-ndpvti2al-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 1
-    "https://frontend-intranet-jjg1gmzmr-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 2
-    "https://frontend-intranet-h6yicbrwg-abdoulaye-lahs-projects.vercel.app",  # URL Vercel 3
-    "https://frontend-intranet-8fufyhe3w-abdoulaye-lahs-projects.vercel.app",  # URL Vercel actuelle
-    "https://frontend-intranet-sar.vercel.app",  # URL Vercel de base
-]
-
-# Accepter toutes les URLs Vercel (pattern wildcard)
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://frontend-intranet.*\.vercel\.app$",
-    r"^https://.*\.vercel\.app$",  # Accepter toutes les URLs Vercel
-]
-
-# Nettoyer les URLs vides
-CORS_ALLOWED_ORIGINS = [origin for origin in CORS_ALLOWED_ORIGINS if origin]
-
-# Configuration CORS pour les cookies de session
-CORS_ALLOW_CREDENTIALS = True  # Activé pour les endpoints qui nécessitent l'authentification
-CORS_ALLOW_ALL_ORIGINS = False  # Sécurité : seulement les origines autorisées
-
-# Headers CORS autorisés pour les images
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-# Méthodes CORS autorisées
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-# =============================================================================
-# CSRF - Configuration de sécurité
-# =============================================================================
-
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
-
-# Configuration CSRF pour les cookies
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = False  # Permettre l'accès depuis JavaScript
-CSRF_COOKIE_SECURE = True  # HTTPS en production
-
-# =============================================================================
-# SESSIONS - Configuration de sécurité
-# =============================================================================
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 86400  # 24 heures
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = True  # HTTPS en production
-SESSION_SAVE_EVERY_REQUEST = True
-
-# =============================================================================
-# SÉCURITÉ HTTPS - Configuration pour production
-# =============================================================================
-
-# Redirection HTTPS
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Headers de sécurité
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
-
-# =============================================================================
-# LOGGING - Configuration des logs pour production
-# =============================================================================
+# ========================================
+# LOGGING PRODUCTION
+# ========================================
 
 LOGGING = {
     'version': 1,
@@ -179,128 +146,181 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+        'json': {
+            'format': '{"level": "%(levelname)s", "time": "%(asctime)s", "module": "%(module)s", "message": "%(message)s"}',
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/sar_rag/django.log',
+            'maxBytes': 1024*1024*15,  # 15MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+        'rag_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/sar_rag/rag.log',
+            'maxBytes': 1024*1024*15,  # 15MB
+            'backupCount': 10,
+            'formatter': 'json',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/sar_rag/error.log',
+            'maxBytes': 1024*1024*15,  # 15MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['file', 'console'],
             'level': 'INFO',
-            'propagate': False,
+            'propagate': True,
         },
-        'sar': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
+        'mai': {
+            'handlers': ['rag_file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['error_file', 'console'],
+            'level': 'ERROR',
+            'propagate': True,
         },
     },
 }
 
-# =============================================================================
-# CACHE - Configuration du cache pour production
-# =============================================================================
+# ========================================
+# SÉCURITÉ SUPPLÉMENTAIRE
+# ========================================
 
-# Cache simple en mémoire (peut être amélioré avec Redis)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-    }
+# Configuration de sécurité
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Configuration des sessions
+SESSION_COOKIE_AGE = 3600  # 1 heure
+SESSION_SAVE_EVERY_REQUEST = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# ========================================
+# PERFORMANCE ET OPTIMISATION
+# ========================================
+
+# Configuration des fichiers statiques
+STATIC_ROOT = '/var/www/sar_rag/static/'
+MEDIA_ROOT = '/var/www/sar_rag/media/'
+
+# Configuration de la base de données
+DATABASE_ROUTERS = []
+
+# Configuration des middlewares optimisés
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# ========================================
+# MONITORING ET MÉTRIQUES
+# ========================================
+
+# Configuration des métriques
+ENABLE_METRICS = True
+METRICS_INTERVAL = 60  # secondes
+HEALTH_CHECK_INTERVAL = 30  # secondes
+
+# Configuration des alertes
+ALERT_EMAIL = config('ALERT_EMAIL', default='admin@intranet-sar.com')
+ALERT_SLACK_WEBHOOK = config('ALERT_SLACK_WEBHOOK', default=None)
+
+# ========================================
+# CONFIGURATION SPÉCIFIQUE RAG
+# ========================================
+
+# Configuration des modèles d'embedding
+EMBEDDING_MODEL_CONFIG = {
+    'model_name': 'all-MiniLM-L6-v2',
+    'cache_dir': '/var/cache/sar_rag/models/',
+    'max_sequence_length': 512,
+    'batch_size': 100,
+    'device': 'cpu',  # ou 'cuda' si GPU disponible
 }
 
-# =============================================================================
-# PERFORMANCE - Optimisations pour production
-# =============================================================================
-
-# Configuration des connexions DB
-DATABASES['default']['CONN_MAX_AGE'] = 60
-
-# Configuration des fichiers uploadés
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-FILE_UPLOAD_PERMISSIONS = 0o644
-
-# =============================================================================
-# RAG - Configuration optimisée pour production
-# =============================================================================
-
-# Configuration RAG optimisée pour Render
-RAG_CONFIG = {
-    'EMBEDDING_MODEL': 'all-MiniLM-L6-v2',
-    'VECTOR_DIMENSION': 384,
-    'MAX_CONTEXT_LENGTH': 2000,
-    'SIMILARITY_THRESHOLD': 0.4,
-    'MAX_DOCUMENTS': 5,
-    'CACHE_EMBEDDINGS': True,  # Mise en cache des embeddings
+# Configuration du cache vectoriel
+VECTOR_CACHE_CONFIG = {
+    'enabled': True,
+    'max_size': 10000,  # nombre max d'embeddings en cache
+    'ttl': 3600,  # 1 heure
+    'compression': True,
 }
 
-# Configuration des modèles RAG
-RAG_EMBEDDING_MODEL = 'all-MiniLM-L6-v2'
-RAG_SIMILARITY_THRESHOLD = 0.4
-RAG_MAX_DOCUMENTS = 5
+# Configuration de l'optimisation automatique
+AUTO_OPTIMIZATION_CONFIG = {
+    'enabled': True,
+    'schedule': '0 2 * * *',  # Tous les jours à 2h du matin
+    'max_duration_minutes': 30,
+    'performance_threshold': 0.8,
+}
 
-# =============================================================================
-# OAuth Google - Configuration pour production
-# =============================================================================
+# ========================================
+# CONFIGURATION DE DÉPLOIEMENT
+# ========================================
 
-# Configuration des variables d'environnement OAuth
-GOOGLE_OAUTH2_CLIENT_ID = config('GOOGLE_OAUTH2_CLIENT_ID', default='')
-GOOGLE_OAUTH2_CLIENT_SECRET = config('GOOGLE_OAUTH2_CLIENT_SECRET', default='')
+# Variables d'environnement de production
+PRODUCTION = True
+ENVIRONMENT = 'production'
 
-# URLs de redirection OAuth pour production
-LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/accueil'
-LOGOUT_REDIRECT_URL = f'{FRONTEND_URL}/login'
+# Configuration des workers
+WSGI_APPLICATION = 'master.wsgi.application'
 
-# =============================================================================
-# CLAUDE API - Configuration pour le RAG
-# =============================================================================
+# Configuration des timeouts
+REQUEST_TIMEOUT = 30
+RESPONSE_TIMEOUT = 60
 
-CLAUDE_API_KEY = config('CLAUDE_API_KEY', default='')
+# Configuration de la mémoire
+MAX_MEMORY_USAGE = 0.8  # 80% de la RAM disponible
 
-if not CLAUDE_API_KEY:
-    print("⚠️  CLAUDE_API_KEY non définie - Le système RAG ne fonctionnera pas")
+# ========================================
+# CONFIGURATION DE SAUVEGARDE
+# ========================================
 
-# =============================================================================
-# RENDER SPECIFIC - Configuration spécifique à Render
-# =============================================================================
+BACKUP_CONFIG = {
+    'enabled': True,
+    'schedule': '0 1 * * *',  # Tous les jours à 1h du matin
+    'retention_days': 30,
+    'backup_dir': '/var/backups/sar_rag/',
+    'include_media': True,
+    'include_static': True,
+}
 
-# URL de base pour les médias (déjà définie plus haut)
+# ========================================
+# CONFIGURATION DE ROLLBACK
+# ========================================
 
-# Port pour Render (fourni via la variable d'environnement PORT)
-PORT = config('PORT', default='8000', cast=int)
+ROLLBACK_CONFIG = {
+    'enabled': True,
+    'max_versions': 5,
+    'auto_rollback_threshold': 0.1,  # 10% d'erreurs
+    'rollback_check_interval': 300,  # 5 minutes
+}
 
-# Configuration pour les workers Gunicorn
-WORKERS = config('WORKERS', default=2, cast=int)
-
-# =============================================================================
-# VALIDATION - Vérifications finales
-# =============================================================================
-
-def validate_production_config():
-    """Valide la configuration de production"""
-    errors = []
-    
-    if DEBUG:
-        errors.append("DEBUG doit être False en production")
-    
-    if not SECRET_KEY or len(SECRET_KEY) < 50:
-        errors.append("SECRET_KEY doit être définie et sécurisée (minimum 50 caractères)")
-    
-    if not ALLOWED_HOSTS:
-        errors.append("ALLOWED_HOSTS doit contenir au moins un host")
-    
-    if errors:
-        raise ValueError(f"Configuration de production invalide: {'; '.join(errors)}")
-
-# Valider la configuration au chargement
-validate_production_config()
-
-print("✅ Configuration de production chargée avec succès")
+print("Configuration de production chargée avec succès!")
