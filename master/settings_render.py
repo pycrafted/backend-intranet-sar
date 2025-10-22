@@ -54,7 +54,6 @@ DATABASES = {
         'OPTIONS': {
             'sslmode': 'require',
             'connect_timeout': 30,
-            'options': '-c default_transaction_isolation="read committed"'
         },
         'CONN_MAX_AGE': 600,  # 10 minutes
         'CONN_HEALTH_CHECKS': True,
