@@ -11,7 +11,16 @@ from .settings import *
 # ========================================
 
 DEBUG = False
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'backend-intranet-sar-1.onrender.com',
+    'frontend-intranet-sar.vercel.app',
+    'intranet-sar.com',
+    'www.intranet-sar.com',
+    '.onrender.com',  # Tous les sous-domaines Render
+    '.vercel.app',    # Tous les sous-domaines Vercel
+]
 
 # ========================================
 # SÉCURITÉ RENFORCÉE
@@ -19,15 +28,43 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(','
 
 # Configuration CORS pour production
 CORS_ALLOWED_ORIGINS = [
+    "https://frontend-intranet-sar.vercel.app",
     "https://frontend-intranet-sar-1.onrender.com",
     "https://intranet-sar.com",
     "https://www.intranet-sar.com",
 ]
 
+# Configuration CORS plus permissive pour le développement
+CORS_ALLOW_ALL_ORIGINS = False  # Sécurité en production
 CORS_ALLOW_CREDENTIALS = True
+
+# Headers CORS autorisés
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Méthodes CORS autorisées
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 # Configuration CSRF
 CSRF_TRUSTED_ORIGINS = [
+    "https://backend-intranet-sar-1.onrender.com",
+    "https://frontend-intranet-sar.vercel.app",
     "https://frontend-intranet-sar-1.onrender.com",
     "https://intranet-sar.com",
     "https://www.intranet-sar.com",
