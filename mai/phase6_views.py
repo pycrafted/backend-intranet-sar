@@ -27,28 +27,31 @@ logger = logging.getLogger(__name__)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def cache_status(request):
-    """Statut du cache Redis"""
+    """Statut du cache local (Redis désactivé)"""
     try:
         stats = advanced_cache_service.get_cache_stats()
-        health = advanced_cache_service.get_cache_health()
+        health = advanced_cache_service.health_check()
         
         return Response({
             'success': True,
             'cache_stats': stats,
             'cache_health': health,
+            'redis_disabled': True,
+            'message': 'Redis complètement désactivé - Cache local uniquement',
             'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
         logger.error(f"Erreur cache status: {e}")
         return Response({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'redis_disabled': True
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def cache_optimize(request):
-    """Optimise le cache Redis"""
+    """Optimise le cache local (Redis désactivé)"""
     try:
         result = advanced_cache_service.optimize_cache()
         
@@ -56,13 +59,16 @@ def cache_optimize(request):
             'success': result['success'],
             'message': result['message'],
             'stats': result.get('stats', {}),
+            'redis_disabled': True,
+            'message_redis': 'Redis complètement désactivé - Cache local uniquement',
             'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
         logger.error(f"Erreur cache optimize: {e}")
         return Response({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'redis_disabled': True
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])

@@ -116,9 +116,14 @@ CACHES = {
     }
 }
 
-# Configuration Redis désactivée pour Render
+# Configuration Redis complètement désactivée pour Render
 USE_REDIS = False
 REDIS_AVAILABLE = False
+REDIS_ENABLED = False
+REDIS_HOST = None
+REDIS_PORT = None
+REDIS_DB = None
+REDIS_PASSWORD = None
 
 # ========================================
 # CONFIGURATION RAG RENDER

@@ -55,8 +55,8 @@ class IntelligentOptimizationService:
         try:
             logger.info("🚀 Démarrage de l'optimisation complète du système RAG")
             
-            # 1. Optimisation du cache Redis
-            logger.info("📦 Optimisation du cache Redis...")
+            # 1. Optimisation du cache local (Redis désactivé)
+            logger.info("📦 Optimisation du cache local (Redis désactivé)...")
             cache_result = self._optimize_cache()
             optimization_results['cache'] = cache_result
             
@@ -106,19 +106,22 @@ class IntelligentOptimizationService:
             }
     
     def _optimize_cache(self) -> Dict[str, Any]:
-        """Optimise le cache Redis"""
+        """Optimise le cache local (Redis désactivé)"""
         try:
-            # 1. Vérifier la santé du cache
-            cache_health = advanced_cache_service.get_cache_health()
+            # 1. Vérifier la santé du cache local
+            cache_health = advanced_cache_service.health_check()
             
-            # 2. Optimiser le cache si nécessaire
+            # 2. Optimiser le cache local si nécessaire
             if cache_health['status'] in ['warning', 'critical']:
                 optimization_result = advanced_cache_service.optimize_cache()
             else:
-                optimization_result = {'success': True, 'message': 'Cache déjà optimisé'}
+                optimization_result = {'success': True, 'message': 'Cache local déjà optimisé'}
             
-            # 3. Préchauffer le cache
-            warmup_result = advanced_cache_service.warm_up_cache()
+            # 3. Préchauffer le cache local (si méthode disponible)
+            try:
+                warmup_result = advanced_cache_service.warm_up_cache()
+            except AttributeError:
+                warmup_result = {'success': True, 'message': 'Warm-up non disponible pour cache local'}
             
             # 4. Obtenir les statistiques finales
             final_stats = advanced_cache_service.get_cache_stats()
