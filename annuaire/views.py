@@ -24,6 +24,24 @@ class DepartmentListCreateView(generics.ListCreateAPIView):
     search_fields = ['name', 'description', 'location']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
+    
+    def list(self, request, *args, **kwargs):
+        """Liste des départements avec logs"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[DEPARTMENT_LIST] Récupération des départements - IP: {request.META.get('REMOTE_ADDR')}")
+        
+        try:
+            departments = self.get_queryset()
+            logger.info(f"[DEPARTMENT_LIST] {departments.count()} départements trouvés")
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"[DEPARTMENT_LIST] Erreur: {str(e)}")
+            return Response({
+                'error': 'Erreur lors de la récupération des départements',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -43,6 +61,80 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     search_fields = ['first_name', 'last_name', 'email', 'employee_id', 'position_title']
     ordering_fields = ['last_name', 'first_name']
     ordering = ['last_name', 'first_name']
+    
+    def create(self, request, *args, **kwargs):
+        """Création d'un employé avec logs détaillés"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[EMPLOYEE_CREATE] Début création employé - IP: {request.META.get('REMOTE_ADDR')}")
+        logger.info(f"[EMPLOYEE_CREATE] Données reçues: {request.data}")
+        
+        try:
+            # Validation des données requises
+            required_fields = ['first_name', 'last_name', 'email', 'department', 'position_title', 'employee_id']
+            missing_fields = [field for field in required_fields if not request.data.get(field)]
+            
+            if missing_fields:
+                logger.error(f"[EMPLOYEE_CREATE] Champs manquants: {missing_fields}")
+                return Response({
+                    'error': 'Champs manquants',
+                    'missing_fields': missing_fields,
+                    'required_fields': required_fields
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérification de l'unicité de l'email
+            email = request.data.get('email')
+            if Employee.objects.filter(email=email).exists():
+                logger.error(f"[EMPLOYEE_CREATE] Email déjà existant: {email}")
+                return Response({
+                    'error': 'Email déjà existant',
+                    'field': 'email',
+                    'value': email
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérification de l'unicité de l'employee_id
+            employee_id = request.data.get('employee_id')
+            if Employee.objects.filter(employee_id=employee_id).exists():
+                logger.error(f"[EMPLOYEE_CREATE] Matricule déjà existant: {employee_id}")
+                return Response({
+                    'error': 'Matricule déjà existant',
+                    'field': 'employee_id',
+                    'value': employee_id
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérification de l'existence du département
+            department_id = request.data.get('department')
+            try:
+                department = Department.objects.get(id=department_id)
+                logger.info(f"[EMPLOYEE_CREATE] Département trouvé: {department.name}")
+            except Department.DoesNotExist:
+                logger.error(f"[EMPLOYEE_CREATE] Département inexistant: {department_id}")
+                return Response({
+                    'error': 'Département inexistant',
+                    'field': 'department',
+                    'value': department_id
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Création de l'employé
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                employee = serializer.save()
+                logger.info(f"[EMPLOYEE_CREATE] Employé créé avec succès: {employee.full_name} (ID: {employee.id})")
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                logger.error(f"[EMPLOYEE_CREATE] Erreurs de validation: {serializer.errors}")
+                return Response({
+                    'error': 'Erreurs de validation',
+                    'details': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"[EMPLOYEE_CREATE] Erreur inattendue: {str(e)}")
+            return Response({
+                'error': 'Erreur interne du serveur',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):

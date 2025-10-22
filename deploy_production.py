@@ -68,8 +68,8 @@ class ProductionDeployer:
     
         # Vérifier Redis
         if not self.run_command("redis-cli --version", "Vérification Redis"):
-            return False
-            
+        return False
+    
         # Vérifier les fichiers de configuration
         required_files = [
             'master/settings_production.py',
@@ -84,8 +84,8 @@ class ProductionDeployer:
         return False
     
         self.log("Tous les prérequis sont satisfaits", "SUCCESS")
-        return True
-    
+    return True
+
     def create_backup(self):
         """Crée une sauvegarde avant déploiement"""
         self.log("=== CRÉATION DE SAUVEGARDE ===")
@@ -136,8 +136,8 @@ class ProductionDeployer:
             "pip install -r requirements.txt --no-cache-dir",
             "Installation dépendances production"
         ):
-            return False
-            
+        return False
+    
         # Installer les dépendances système
         system_deps = [
             "psycopg2-binary",
@@ -163,15 +163,15 @@ class ProductionDeployer:
             "python manage.py makemigrations",
             "Création des migrations"
         ):
-        return False
-    
+            return False
+        
         # Appliquer les migrations
         if not self.run_command(
             "python manage.py migrate",
             "Application des migrations"
         ):
-            return False
-            
+        return False
+    
         # Créer l'index vectoriel
         if not self.run_command(
             "python manage.py build_vector_index --index-type ivfflat",
@@ -180,8 +180,8 @@ class ProductionDeployer:
             self.log("Index vectoriel non créé", "WARNING")
         
         self.log("Migrations exécutées avec succès", "SUCCESS")
-        return True
-    
+    return True
+
     def collect_static_files(self):
         """Collecte les fichiers statiques"""
         self.log("=== COLLECTE DES FICHIERS STATIQUES ===")
@@ -195,8 +195,8 @@ class ProductionDeployer:
             "python manage.py collectstatic --noinput",
             "Collecte fichiers statiques"
         ):
-            return False
-            
+        return False
+    
         self.log("Fichiers statiques collectés", "SUCCESS")
         return True
     
@@ -242,8 +242,8 @@ class ProductionDeployer:
         )
         
         self.log("Optimisation terminée", "SUCCESS")
-        return True
-    
+    return True
+
     def create_systemd_service(self):
         """Crée le service systemd pour la production"""
         self.log("=== CRÉATION SERVICE SYSTEMD ===")
@@ -320,7 +320,7 @@ WantedBy=multi-user.target
             self.log("Permissions insuffisantes pour logrotate", "WARNING")
         
     return True
-    
+
     def generate_deployment_report(self):
         """Génère un rapport de déploiement"""
         self.log("=== GÉNÉRATION DU RAPPORT ===")
@@ -377,9 +377,9 @@ WantedBy=multi-user.target
             self.log(f"\n--- {step_name} ---")
             try:
                 if step_func():
-                    success_count += 1
+            success_count += 1
                     self.log(f"✅ {step_name} terminé avec succès")
-                else:
+        else:
                     self.log(f"❌ {step_name} échoué", "ERROR")
             except Exception as e:
                 self.log(f"❌ {step_name} erreur: {e}", "ERROR")

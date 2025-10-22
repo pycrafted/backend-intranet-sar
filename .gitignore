@@ -343,17 +343,10 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Media files (user uploaded files) - IGNORE ALL MEDIA EXCEPT TEST IMAGES
+# Media files (user uploaded files) - IGNORE ALL MEDIA
 media/
 media/*
 !media/.gitkeep
-!media/*/.gitkeep
-!media/articles/
-!media/articles/*.png
-!media/articles/*.jpg
-!media/articles/*.jpeg
-!media/articles/*.gif
-!media/articles/*.webp
 
 # Static files (collected)
 staticfiles/
