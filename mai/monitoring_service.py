@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from mai.models import RAGSearchLog, DocumentEmbedding
 from django.db import models
-from mai.cache_service import advanced_cache_service
+from mai.cache_service import cache_service as advanced_cache_service
 from mai.vector_index_service import vector_index_service
 
 logger = logging.getLogger(__name__)

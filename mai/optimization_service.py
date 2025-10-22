@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 from mai.embedding_service import embedding_service
 from mai.vector_search_service import vector_search_service
-from mai.cache_service import advanced_cache_service
+from mai.cache_service import cache_service as advanced_cache_service
 from mai.vector_index_service import vector_index_service
 from mai.monitoring_service import advanced_monitoring_service
 from mai.models import DocumentEmbedding, RAGSearchLog

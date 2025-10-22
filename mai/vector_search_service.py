@@ -5,7 +5,7 @@ from django.db import connection
 from django.conf import settings
 from mai.models import DocumentEmbedding, RAGSearchLog
 from mai.embedding_service import embedding_service
-from mai.cache_service import advanced_cache_service
+from mai.cache_service import cache_service as advanced_cache_service
 import json
 
 logger = logging.getLogger(__name__)

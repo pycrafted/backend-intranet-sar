@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from mai.optimization_service import intelligent_optimization_service
-from mai.cache_service import advanced_cache_service
+from mai.cache_service import cache_service as advanced_cache_service
 from mai.vector_index_service import vector_index_service
 from mai.monitoring_service import advanced_monitoring_service
 
