@@ -63,6 +63,37 @@ class MAIService:
         text = text.replace('mérox', 'merox')
         text = text.replace('merox', 'merox')
         
+        # Normaliser les abréviations courantes
+        abbreviations = {
+            'dg': 'directeur general',
+            'd.g': 'directeur general',
+            'd.g.': 'directeur general',
+            'pdg': 'president directeur general',
+            'p.d.g': 'president directeur general',
+            'p.d.g.': 'president directeur general',
+            'drh': 'directeur ressources humaines',
+            'd.r.h': 'directeur ressources humaines',
+            'd.r.h.': 'directeur ressources humaines',
+            'daf': 'directeur administratif financier',
+            'd.a.f': 'directeur administratif financier',
+            'd.a.f.': 'directeur administratif financier',
+            'cto': 'directeur technique',
+            'c.t.o': 'directeur technique',
+            'c.t.o.': 'directeur technique',
+            'cfo': 'directeur financier',
+            'c.f.o': 'directeur financier',
+            'c.f.o.': 'directeur financier',
+            'ceo': 'directeur general',
+            'c.e.o': 'directeur general',
+            'c.e.o.': 'directeur general',
+        }
+        
+        for abbr, full in abbreviations.items():
+            text = text.replace(f' {abbr} ', f' {full} ')
+            text = text.replace(f' {abbr}.', f' {full}')
+            text = text.replace(f' {abbr},', f' {full},')
+            text = text.replace(f' {abbr}', f' {full}')
+        
         # Supprimer la ponctuation et les espaces multiples
         text = re.sub(r'[^\w\s]', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
@@ -106,6 +137,12 @@ class MAIService:
            ('acronyme' in q1_normalized and 'acronyme' in q2_normalized) or \
            ('signifie' in q1_normalized and 'signifie' in q2_normalized):
             return 0.9
+        
+        # Vérification spéciale pour les questions sur le directeur général
+        if ('directeur general' in q1_normalized and 'directeur general' in q2_normalized) or \
+           ('dg' in q1_normalized and 'directeur general' in q2_normalized) or \
+           ('directeur general' in q1_normalized and 'dg' in q2_normalized):
+            return 0.95  # Très forte similarité pour les questions sur le DG
         
         q1_words = set(q1_normalized.split())
         q2_words = set(q2_normalized.split())
