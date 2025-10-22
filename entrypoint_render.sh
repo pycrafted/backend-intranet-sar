@@ -59,6 +59,22 @@ if [ ! -f "data/sar_official_dataset.csv" ]; then
     echo "Quelle est la capacité de la SAR ?,1,2 million de tonnes par an" >> data/sar_official_dataset.csv
 fi
 
+# =============================================================================
+# DÉPLOIEMENT DES FICHIERS MÉDIA
+# =============================================================================
+
+echo "📁 Déploiement des fichiers média..."
+python deploy_media.py || echo "⚠️  Erreur lors du déploiement des médias"
+
+# Vérifier que les médias sont présents
+echo "🔍 Vérification des médias..."
+ls -la media/ || echo "⚠️  Dossier média non trouvé"
+ls -la media/articles/ || echo "⚠️  Dossier articles non trouvé"
+
+# Corriger les noms de fichiers dans la base de données
+echo "🔧 Correction des noms de fichiers média..."
+python fix_media_filenames.py || echo "⚠️  Erreur lors de la correction des noms de fichiers"
+
 # Configuration RAG complète avec chargement du dataset
 echo "   - Configuration RAG complète..."
 python manage.py shell -c "

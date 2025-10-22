@@ -28,6 +28,11 @@ urlpatterns = [
     path('statistics/', views.get_statistics, name='mai_statistics'),
     path('sample-questions/', views.get_sample_questions, name='mai_sample_questions'),
     
+    # Endpoints de messages de chargement intelligents
+    path('loading-message/', views.get_loading_message, name='loading_message'),
+    path('progressive-loading/', views.get_progressive_loading, name='progressive_loading'),
+    path('quick-loading/', views.get_quick_loading_message, name='quick_loading'),
+    
     # Nouveaux endpoints hybrides
     path('hybrid-search/', HybridSearchView.as_view(), name='hybrid_search'),
     path('hybrid-context/', HybridContextView.as_view(), name='hybrid_context'),
