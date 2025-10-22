@@ -59,20 +59,46 @@ if [ ! -f "data/sar_official_dataset.csv" ]; then
     echo "Quelle est la capacité de la SAR ?,1,2 million de tonnes par an" >> data/sar_official_dataset.csv
 fi
 
-# Configuration RAG simplifiée (sans vectorisation pour éviter les erreurs)
-echo "   - Configuration RAG simplifiée..."
+# Configuration RAG complète avec chargement du dataset
+echo "   - Configuration RAG complète..."
 python manage.py shell -c "
 from mai.models import DocumentEmbedding
 from mai.services import MAIService
 import pandas as pd
+import os
 
-# Charger le dataset
+# Vérifier l'existence du dataset
+dataset_path = 'data/sar_official_dataset.csv'
+if not os.path.exists(dataset_path):
+    print(f'ERREUR: Dataset non trouvé à {dataset_path}')
+    exit(1)
+
+# Charger le dataset complet
 try:
-    df = pd.read_csv('data/sar_official_dataset.csv')
+    df = pd.read_csv(dataset_path)
     print(f'Dataset chargé: {len(df)} questions')
     
-    # Créer quelques documents d'exemple
-    for _, row in df.head(5).iterrows():
+    # Vérifier que le dataset contient les bonnes données
+    test_questions = [
+        'Qui est l\\'actuel Directeur général de la SAR ?',
+        'Où se trouve la SAR ?',
+        'Quelle est la fonction du wharf opéré par la SAR ?'
+    ]
+    
+    for test_q in test_questions:
+        found = False
+        for _, row in df.iterrows():
+            if test_q.lower() in row['question'].lower():
+                print(f'✅ Question trouvée: {test_q}')
+                found = True
+                break
+        if not found:
+            print(f'❌ Question manquante: {test_q}')
+    
+    # Créer tous les documents (pas seulement les 5 premiers)
+    print('Création des documents en base...')
+    created_count = 0
+    for _, row in df.iterrows():
         doc, created = DocumentEmbedding.objects.get_or_create(
             content=f'Q: {row[\"question\"]}\\nA: {row[\"answer\"]}',
             defaults={
@@ -85,11 +111,16 @@ try:
             }
         )
         if created:
-            print(f'Document créé: {row[\"question\"]}')
+            created_count += 1
     
-    print('Configuration RAG terminée')
+    print(f'Documents créés: {created_count}')
+    print(f'Total documents en base: {DocumentEmbedding.objects.count()}')
+    print('Configuration RAG terminée avec succès')
+    
 except Exception as e:
-    print(f'Erreur configuration RAG: {e}')
+    print(f'ERREUR configuration RAG: {e}')
+    import traceback
+    traceback.print_exc()
 " || echo "⚠️  Erreur lors de la configuration RAG"
 
 # =============================================================================
