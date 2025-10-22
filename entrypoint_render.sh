@@ -30,7 +30,11 @@ python -c "import gunicorn; print('Gunicorn OK')"
 # =============================================================================
 
 echo "🔄 Application des migrations Django..."
-python manage.py migrate --run-syncdb
+# Appliquer les migrations avec gestion des erreurs
+python manage.py migrate --run-syncdb || {
+    echo "⚠️  Erreur lors des migrations, tentative de récupération..."
+    python fix_migrations.py || echo "⚠️  Impossible de corriger les migrations"
+}
 
 # =============================================================================
 # COLLECTION DES FICHIERS STATIQUES
