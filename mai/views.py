@@ -23,16 +23,11 @@ def search_question(request):
                 'error': 'Question requise'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Vérifier si la question concerne la SAR
-        if not mai_service.is_question_about_sar(user_question):
-            return Response({
-                'success': False,
-                'error': 'Cette question ne concerne pas la SAR. Je ne peux répondre qu\'aux questions sur la Société Africaine de Raffinage basées sur notre dataset officiel.',
-                'suggestion': 'Posez une question sur la SAR, ses activités, son histoire, ses produits, etc.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # FILTRE SAR SUPPRIMÉ - Toutes les questions sont acceptées
+        # Le dataset contient uniquement des questions SAR pertinentes
         
-        # Rechercher la réponse
-        result = mai_service.search_answer(user_question, threshold=0.3)
+        # Rechercher la réponse avec seuil réduit pour plus de flexibilité
+        result = mai_service.search_answer(user_question, threshold=0.2)
         
         if result:
             return Response({
@@ -74,13 +69,8 @@ def get_context(request):
                 'error': 'Question requise'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Vérifier si la question concerne la SAR
-        if not mai_service.is_question_about_sar(question):
-            return Response({
-                'success': False,
-                'context': '',
-                'error': 'Question non liée à la SAR'
-            })
+        # FILTRE SAR SUPPRIMÉ - Toutes les questions sont acceptées
+        # Le dataset contient uniquement des questions SAR pertinentes
         
         # Obtenir le contexte
         context = mai_service.get_context_for_question(question)

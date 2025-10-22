@@ -54,7 +54,7 @@ DATABASES = {
         'OPTIONS': {
             'sslmode': 'require',
             'connect_timeout': 30,
-            'options': '-c default_transaction_isolation=read_committed'
+            'options': '-c default_transaction_isolation="read committed"'
         },
         'CONN_MAX_AGE': 600,  # 10 minutes
         'CONN_HEALTH_CHECKS': True,
@@ -62,36 +62,27 @@ DATABASES = {
 }
 
 # ========================================
-# CACHE REDIS RENDER
+# CACHE RENDER (DÉSACTIVÉ - PAS DE REDIS)
 # ========================================
 
-REDIS_HOST = config('REDIS_HOST', default='localhost')
-REDIS_PORT = config('REDIS_PORT', default=6379)
-REDIS_DB = config('REDIS_DB', default=0)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)
-
+# Redis non disponible sur Render - Utilisation du cache local
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'sar_rag_cache',
         'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PASSWORD': REDIS_PASSWORD,
-            'CONNECTION_POOL_KWARGS': {
-                'max_connections': 50,
-                'retry_on_timeout': True,
-                'socket_keepalive': True,
-                'socket_keepalive_options': {},
-                'health_check_interval': 30,
-            },
-            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
-            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
         },
         'TIMEOUT': 300,  # 5 minutes
         'VERSION': 1,
         'KEY_PREFIX': 'sar_rag',
     }
 }
+
+# Configuration Redis désactivée pour Render
+USE_REDIS = False
+REDIS_AVAILABLE = False
 
 # ========================================
 # CONFIGURATION RAG RENDER
@@ -103,14 +94,14 @@ RAG_CONFIG = {
     'MAX_CONTEXT_LENGTH': 2000,
     'SIMILARITY_THRESHOLD': 0.7,
     'MAX_DOCUMENTS': 5,
-    'CACHE_ENABLED': True,
+    'CACHE_ENABLED': False,  # Désactivé sur Render (pas de Redis)
     'CACHE_TTL': 3600,  # 1 heure
-    'BATCH_SIZE': 100,  # Optimisé pour production
+    'BATCH_SIZE': 50,  # Réduit pour Render
     'PERFORMANCE_MODE': True,
     'ENABLE_MONITORING': True,
     'LOG_LEVEL': 'INFO',
-    'MAX_CONCURRENT_REQUESTS': 100,
-    'RATE_LIMIT_PER_MINUTE': 1000,
+    'MAX_CONCURRENT_REQUESTS': 50,  # Réduit pour Render
+    'RATE_LIMIT_PER_MINUTE': 500,  # Réduit pour Render
 }
 
 # Configuration de migration progressive
@@ -121,12 +112,12 @@ RAG_MIGRATION_CONFIG = {
     'HEURISTIC_THRESHOLD': 0.2,
     'MIGRATION_PHASE': 'production',  # Phase production
     'EMBEDDING_MODEL': 'all-MiniLM-L6-v2',
-    'CACHE_ENABLED': True,
+    'CACHE_ENABLED': False,  # Désactivé sur Render (pas de Redis)
     'CACHE_TTL': 3600,
-    'BATCH_SIZE': 100,
+    'BATCH_SIZE': 50,  # Réduit pour Render
     'PERFORMANCE_MODE': True,
     'MONITORING_ENABLED': True,
-    'AUTO_OPTIMIZATION': True,
+    'AUTO_OPTIMIZATION': False,  # Désactivé sur Render
     'OPTIMIZATION_INTERVAL_HOURS': 24,
 }
 
@@ -237,17 +228,17 @@ EMBEDDING_MODEL_CONFIG = {
     'device': 'cpu',  # ou 'cuda' si GPU disponible
 }
 
-# Configuration du cache vectoriel
+# Configuration du cache vectoriel (désactivé sur Render)
 VECTOR_CACHE_CONFIG = {
-    'enabled': True,
-    'max_size': 10000,  # nombre max d'embeddings en cache
+    'enabled': False,  # Désactivé sur Render (pas de Redis)
+    'max_size': 1000,  # Réduit pour Render
     'ttl': 3600,  # 1 heure
     'compression': True,
 }
 
-# Configuration de l'optimisation automatique
+# Configuration de l'optimisation automatique (désactivée sur Render)
 AUTO_OPTIMIZATION_CONFIG = {
-    'enabled': True,
+    'enabled': False,  # Désactivé sur Render
     'schedule': '0 2 * * *',  # Tous les jours à 2h du matin
     'max_duration_minutes': 30,
     'performance_threshold': 0.8,

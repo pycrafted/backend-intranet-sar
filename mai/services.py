@@ -295,7 +295,14 @@ class MAIService:
             # Qualité et certification
             'qualite', 'iso', 'certification', 'normes', 'conformite',
             # Modernisation et projets
-            'modernisation', 'projet', 'sar 2.0', 'petrochimie', 'digitalisation'
+            'modernisation', 'projet', 'sar 2.0', 'petrochimie', 'digitalisation',
+            # Systèmes informatiques SAR
+            'qualipro', 'sap', 'fiori', 'agenda', 'bilan', 'risque', 'risques', 'score', 'scores',
+            'notification', 'alerte', 'alertes', 'workflow', 'processus', 'module', 'modules',
+            'reporting', 'rapport', 'rapports', 'statistique', 'statistiques', 'indicateur', 'indicateurs',
+            'audit', 'audits', 'conformite', 'non conformite', 'action', 'actions', 'reunion', 'reunions',
+            'document', 'documents', 'formation', 'formations', 'competence', 'competences',
+            'fournisseur', 'fournisseurs', 'client', 'clients', 'satisfaction', 'suggestion', 'suggestions'
         ]
         
         question_lower = self._normalize_text(question)
@@ -308,6 +315,19 @@ class MAIService:
         # Si la question contient "SAR" ou "société africaine", c'est automatiquement valide
         if 'sar' in question_lower or 'societe africaine' in question_lower:
             return True
+        
+        # NOUVELLE LOGIQUE : Si la question semble être une définition ou une question technique,
+        # et qu'elle pourrait être dans notre dataset, on l'accepte pour vérification
+        technical_indicators = [
+            'objet', 'incertitude', 'element', 'situation', 'evenement', 'risque', 'opportunite',
+            'organisation', 'calcul', 'calcule', 'score', 'bilan', 'agenda', 'utilisateur',
+            'information', 'informations', 'trouve', 'trouve-t-on', 'acceder', 'acces'
+        ]
+        
+        # Si la question contient des indicateurs techniques, on l'accepte pour vérification
+        for indicator in technical_indicators:
+            if indicator in question_lower:
+                return True
         
         return False
     
