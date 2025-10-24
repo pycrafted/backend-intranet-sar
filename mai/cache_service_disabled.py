@@ -338,3 +338,4 @@ class AdvancedCacheService:
 
 # Instance globale du service de cache
 cache_service = AdvancedCacheService()
+

@@ -12,3 +12,4 @@ REM Executer le test
 python test_phase6_simple.py
 
 pause
+

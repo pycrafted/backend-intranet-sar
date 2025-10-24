@@ -63,3 +63,4 @@ def deploy_render_minimal():
 if __name__ == "__main__":
     success = deploy_render_minimal()
     sys.exit(0 if success else 1)
+

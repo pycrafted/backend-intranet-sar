@@ -115,7 +115,7 @@ def check_database_data():
             # Vérifier quelques documents
             docs = DocumentEmbedding.objects.all()[:5]
             for doc in docs:
-                print(f"   📄 Document: {doc.content[:100]}...")
+                print(f"   📄 Document: {doc.content_text[:100]}...")
         
         return count > 0
         

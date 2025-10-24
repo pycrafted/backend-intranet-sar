@@ -59,7 +59,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source='department.name', read_only=True)
     position_title = serializers.CharField()
     matricule = serializers.CharField(source='employee_id', read_only=True)
-    avatar = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = Employee
@@ -69,22 +69,77 @@ class EmployeeListSerializer(serializers.ModelSerializer):
             'avatar'
         ]
     
-    def get_avatar(self, obj):
-        """Retourne l'URL complète de l'avatar"""
-        if obj.avatar:
+    def create(self, validated_data):
+        """Création d'un employé avec logs détaillés"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[EMPLOYEE_SERIALIZER] Données validées: {validated_data}")
+        
+        # Logs spécifiques pour l'avatar
+        if 'avatar' in validated_data:
+            avatar = validated_data['avatar']
+            logger.info(f"[EMPLOYEE_SERIALIZER] Avatar dans validated_data:")
+            logger.info(f"  - Nom: {avatar.name}")
+            logger.info(f"  - Taille: {avatar.size} bytes")
+            logger.info(f"  - Type: {avatar.content_type}")
+        else:
+            logger.info(f"[EMPLOYEE_SERIALIZER] Aucun avatar dans validated_data")
+        
+        try:
+            # Créer l'employé
+            employee = Employee.objects.create(**validated_data)
+            logger.info(f"[EMPLOYEE_SERIALIZER] Employé créé avec succès: {employee.full_name} (ID: {employee.id})")
+            
+            # Vérifier l'avatar après création
+            if employee.avatar:
+                logger.info(f"[EMPLOYEE_SERIALIZER] Avatar sauvegardé après création:")
+                logger.info(f"  - URL: {employee.avatar.url}")
+                logger.info(f"  - Nom: {employee.avatar.name}")
+                logger.info(f"  - Taille: {employee.avatar.size} bytes")
+            else:
+                logger.info(f"[EMPLOYEE_SERIALIZER] Aucun avatar sauvegardé après création")
+            
+            return employee
+        except Exception as e:
+            logger.error(f"[EMPLOYEE_SERIALIZER] Erreur lors de la création: {str(e)}")
+            raise serializers.ValidationError(f"Erreur lors de la création de l'employé: {str(e)}")
+    
+    def validate(self, data):
+        """Validation globale des données"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[EMPLOYEE_SERIALIZER] Validation des données: {data}")
+        
+        # Vérifier que tous les champs requis sont présents
+        required_fields = ['first_name', 'last_name', 'email', 'department', 'position_title', 'employee_id']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            logger.error(f"[EMPLOYEE_SERIALIZER] Champs manquants: {missing_fields}")
+            raise serializers.ValidationError({
+                'error': 'Champs manquants',
+                'missing_fields': missing_fields
+            })
+        
+        return data
+    
+    def to_representation(self, instance):
+        """Override pour ajouter l'URL complète de l'avatar dans la réponse"""
+        data = super().to_representation(instance)
+        
+        # Ajouter l'URL complète de l'avatar si présent
+        if instance.avatar:
             request = self.context.get('request')
             if request:
-                url = request.build_absolute_uri(obj.avatar.url)
-                print(f"[AVATAR_URL] URL générée: {url}")
-                return url
-            # Fallback si pas de request (ex: tests)
-            from django.conf import settings
-            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
-            url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
-            print(f"[AVATAR_URL] URL fallback: {url}")
-            return url
-        print(f"[AVATAR_URL] Aucun avatar pour {obj.full_name}")
-        return None
+                data['avatar_url'] = request.build_absolute_uri(instance.avatar.url)
+            else:
+                from django.conf import settings
+                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                data['avatar_url'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
+        
+        return data
     
     def validate_phone_fixed(self, value):
         """Valider l'unicité du numéro de téléphone fixe"""
@@ -138,20 +193,36 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
     
     def get_avatar(self, obj):
         """Retourne l'URL complète de l'avatar"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[AVATAR_SERIALIZER] === GESTION AVATAR POUR {obj.full_name} ===")
+        logger.info(f"[AVATAR_SERIALIZER] Objet avatar: {obj.avatar}")
+        logger.info(f"[AVATAR_SERIALIZER] Type avatar: {type(obj.avatar)}")
+        
         if obj.avatar:
+            logger.info(f"[AVATAR_SERIALIZER] Avatar trouvé:")
+            logger.info(f"  - Nom: {obj.avatar.name}")
+            logger.info(f"  - URL: {obj.avatar.url}")
+            logger.info(f"  - Taille: {obj.avatar.size} bytes")
+            logger.info(f"  - Chemin: {obj.avatar.path}")
+            
             request = self.context.get('request')
             if request:
                 url = request.build_absolute_uri(obj.avatar.url)
-                print(f"[AVATAR_URL] URL générée: {url}")
+                logger.info(f"[AVATAR_SERIALIZER] URL générée avec request: {url}")
                 return url
-            # Fallback si pas de request (ex: tests)
-            from django.conf import settings
-            base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
-            url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
-            print(f"[AVATAR_URL] URL fallback: {url}")
-            return url
-        print(f"[AVATAR_URL] Aucun avatar pour {obj.full_name}")
-        return None
+            else:
+                logger.info(f"[AVATAR_SERIALIZER] Pas de request, utilisation du fallback")
+                # Fallback si pas de request (ex: tests)
+                from django.conf import settings
+                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                url = f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
+                logger.info(f"[AVATAR_SERIALIZER] URL fallback: {url}")
+                return url
+        else:
+            logger.info(f"[AVATAR_SERIALIZER] Aucun avatar pour {obj.full_name}")
+            return None
     
     def validate_phone_fixed(self, value):
         """Valider l'unicité du numéro de téléphone fixe"""

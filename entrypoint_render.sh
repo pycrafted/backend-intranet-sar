@@ -116,7 +116,7 @@ try:
     created_count = 0
     for _, row in df.iterrows():
         doc, created = DocumentEmbedding.objects.get_or_create(
-            content=f'Q: {row[\"question\"]}\\nA: {row[\"answer\"]}',
+            content_text=f'Q: {row[\"question\"]}\\nA: {row[\"answer\"]}',
             defaults={
                 'embedding': [0.0] * 384,  # Embedding factice
                 'metadata': {

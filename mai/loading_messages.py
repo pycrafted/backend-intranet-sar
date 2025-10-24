@@ -251,3 +251,4 @@ class LoadingMessageService:
 
 # Instance globale du service
 loading_service = LoadingMessageService()
+

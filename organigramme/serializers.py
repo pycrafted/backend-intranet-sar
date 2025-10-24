@@ -98,6 +98,23 @@ class AgentListSerializer(serializers.ModelSerializer):
     initials = serializers.ReadOnlyField()
     main_direction_name = serializers.SerializerMethodField()
     
+    def to_representation(self, instance):
+        """Override pour formater l'URL de l'avatar"""
+        data = super().to_representation(instance)
+        if instance.avatar:
+            # Construire l'URL complète de l'avatar
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(instance.avatar.url)
+            else:
+                # Fallback pour la production
+                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                data['avatar'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
+        else:
+            # Avatar par défaut si aucun avatar n'est uploadé
+            data['avatar'] = None
+        return data
+    
     class Meta:
         model = Agent
         fields = [

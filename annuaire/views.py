@@ -62,6 +62,26 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['last_name', 'first_name']
     ordering = ['last_name', 'first_name']
     
+    def list(self, request, *args, **kwargs):
+        """Liste des employés avec logs pour les avatars"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            employees = self.get_queryset()
+            logger.info(f"[EMPLOYEE_LIST] {employees.count()} employés trouvés")
+            
+            # Logs spécifiques pour les avatars
+            logger.info(f"[EMPLOYEE_LIST] === ANALYSE DES AVATARS ===")
+            for emp in employees[:3]:  # Logs pour les 3 premiers employés
+                logger.info(f"[EMPLOYEE_LIST] {emp.full_name}: {emp.avatar.url if emp.avatar else 'AUCUN'}")
+            
+            response = super().list(request, *args, **kwargs)
+            return response
+        except Exception as e:
+            logger.error(f"[EMPLOYEE_LIST] Erreur: {str(e)}")
+            return super().list(request, *args, **kwargs)
+    
     def create(self, request, *args, **kwargs):
         """Création d'un employé avec logs détaillés"""
         import logging
@@ -116,11 +136,47 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
                     'value': department_id
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            # Logs détaillés pour l'avatar
+            logger.info(f"[EMPLOYEE_CREATE] === GESTION DE L'AVATAR ===")
+            avatar_file = request.FILES.get('avatar')
+            if avatar_file:
+                logger.info(f"[EMPLOYEE_CREATE] Avatar reçu:")
+                logger.info(f"  - Nom: {avatar_file.name}")
+                logger.info(f"  - Taille: {avatar_file.size} bytes")
+                logger.info(f"  - Type: {avatar_file.content_type}")
+                logger.info(f"  - Type de fichier: {type(avatar_file)}")
+            else:
+                logger.info(f"[EMPLOYEE_CREATE] Aucun avatar reçu")
+            
             # Création de l'employé
-            serializer = self.get_serializer(data=request.data)
+            # IMPORTANT: Fusionner request.data et request.FILES
+            logger.info(f"[EMPLOYEE_CREATE] === ANALYSE DES DONNÉES ===")
+            logger.info(f"[EMPLOYEE_CREATE] request.data: {request.data}")
+            logger.info(f"[EMPLOYEE_CREATE] request.FILES: {request.FILES}")
+            logger.info(f"[EMPLOYEE_CREATE] Fichiers disponibles: {list(request.FILES.keys())}")
+            
+            # Fusionner les données et les fichiers
+            data = request.data.copy()
+            data.update(request.FILES)
+            logger.info(f"[EMPLOYEE_CREATE] Données fusionnées: {data}")
+            
+            serializer = self.get_serializer(data=data)
+            logger.info(f"[EMPLOYEE_CREATE] Serializer créé avec données fusionnées")
+            
             if serializer.is_valid():
                 employee = serializer.save()
                 logger.info(f"[EMPLOYEE_CREATE] Employé créé avec succès: {employee.full_name} (ID: {employee.id})")
+                
+                # Logs pour l'avatar après création
+                if employee.avatar:
+                    logger.info(f"[EMPLOYEE_CREATE] Avatar sauvegardé:")
+                    logger.info(f"  - URL: {employee.avatar.url}")
+                    logger.info(f"  - Nom: {employee.avatar.name}")
+                    logger.info(f"  - Taille: {employee.avatar.size} bytes")
+                    logger.info(f"  - Chemin: {employee.avatar.path}")
+                else:
+                    logger.info(f"[EMPLOYEE_CREATE] Aucun avatar sauvegardé")
+                
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 logger.error(f"[EMPLOYEE_CREATE] Erreurs de validation: {serializer.errors}")

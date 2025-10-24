@@ -45,3 +45,4 @@ WHERE image LIKE '%_gxSj1VP%';
 SELECT id, image, title 
 FROM actualites_article 
 WHERE image IS NOT NULL AND image != '';
+

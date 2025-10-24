@@ -1610,8 +1610,6 @@
 "Quelle est la langue de l'interface du système présentée ?","L'interface présentée est en français."
 "Existe-t-il un bouton pour supprimer une non-conformité ?","Oui, un bouton 'Supprimer' est visible dans la liste des non-conformités."
 "Dans l'exemple, que signifie l'action de traitement 'Corriger le constat' ?","C'est l'action de traitement spécifique qui a été indiquée dans l'exemple de la formation."
-
-
 "Qui sont les formateurs du module Action ?","Les formateurs sont l'Equipe Projet Qualipro."
 "Combien de sections contient le module Action ?","Le module Action contient 9 sections principales."
 "Quelles sont les 9 sections du module Action ?","Les sections sont : Tableau de Bord (Page d'accueil), Enregistrement Demande d'action, Validation d'une demande d'action, Enregistrement action, Modification une action, Réalisation d'une action, Suivi efficacité action, Clôture des actions, et Reporting des actions."

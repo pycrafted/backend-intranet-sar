@@ -62,3 +62,4 @@ python -c "import django_redis; print('✅ django-redis: OK')" 2>/dev/null || ec
 echo ""
 echo "🎉 Installation terminée !"
 echo "Vous pouvez maintenant exécuter: python test_phase6_optimizations.py"
+

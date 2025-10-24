@@ -46,3 +46,4 @@ echo Pour l'arrêter, fermez la fenêtre "Django Backend".
 echo.
 
 pause
+

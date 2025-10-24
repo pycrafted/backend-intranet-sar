@@ -50,6 +50,7 @@ class AgentListView(generics.ListCreateAPIView):
             'query_params': dict(self.request.query_params)
         })
         
+        
         queryset = Agent.objects.select_related('manager').prefetch_related('directions').all()
         
         # Filtre par direction

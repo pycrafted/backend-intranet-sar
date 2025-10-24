@@ -18,3 +18,4 @@ python run_phase8_deployment.py
 echo.
 echo Phase 8 terminee !
 pause
+
