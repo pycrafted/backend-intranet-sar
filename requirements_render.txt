@@ -11,7 +11,6 @@ Django==5.2.6
 djangorestframework==3.16.1
 django-cors-headers==4.7.0
 django-filter==25.1
-django-allauth==65.11.2
 
 # =============================================================================
 # BASE DE DONNÉES - PostgreSQL et extensions
@@ -35,15 +34,6 @@ python-dotenv==1.1.1
 # IMAGES ET MÉDIA - Traitement des fichiers
 # =============================================================================
 pillow==11.3.0
-
-# =============================================================================
-# AUTHENTIFICATION - OAuth Google
-# =============================================================================
-google-auth==2.41.0
-google-auth-oauthlib==1.2.2
-google-auth-httplib2==0.2.0
-oauthlib==3.3.1
-requests-oauthlib==2.0.0
 
 # =============================================================================
 # RAG - Système d'assistance intelligent (optimisé pour plan payant)
