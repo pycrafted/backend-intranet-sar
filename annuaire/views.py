@@ -430,31 +430,35 @@ def annuaire_statistics(request):
 def annuaire_hierarchy_data(request):
     """
     Données hiérarchiques pour l'organigramme
-    Utilise les données de l'app authentication
+    Utilise les données de l'app annuaire (Employee)
+    Compatible avec employee_hierarchy_data
     """
-    # Utilisateurs avec leurs managers
-    users = User.objects.select_related('manager')
+    employees = Employee.objects.select_related(
+        'department'
+    )
     
     hierarchy_data = {}
     
-    for user in users:
-        level = 1 if user.is_superuser else (2 if user.is_staff else 3)
+    for employee in employees:
+        # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
+        level = 1
         
         if level not in hierarchy_data:
             hierarchy_data[level] = []
         
         hierarchy_data[level].append({
-            'id': user.id,
-            'name': user.get_full_name(),
-            'role': user.position or 'Employé',
-            'department': user.department or 'Non renseigné',
-            'email': user.email,
-            'phone': user.phone_number or 'Non renseigné',
-            'location': 'Dakar, Sénégal',  # Peut être ajouté au modèle User si nécessaire
-            'avatar': user.avatar.url if user.avatar else None,
-            'initials': f"{user.first_name[0]}{user.last_name[0]}".upper() if user.first_name and user.last_name else "U",
+            'id': employee.id,
+            'name': employee.full_name,
+            'role': employee.position_title,
+            'department': employee.department.name,
+            'email': employee.email,
+            'phone_fixed': employee.phone_fixed,
+            'phone_mobile': employee.phone_mobile,
+            'location': 'Non spécifié',
+            'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+            'initials': employee.initials,
             'level': level,
-            'parentId': user.manager.id if user.manager else None,
+            'parentId': None,  # Plus de manager
             'children': []
         })
     
