@@ -22,16 +22,14 @@ from .media_views import MediaView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/health/', include('health.urls')),
     path('api/auth/', include('authentication.urls')),
+    path('api/health/', include('health.urls')),
     path('api/actualites/', include('actualites.urls')),
     path('api/annuaire/', include('annuaire.urls')),
     path('api/accueil/', include('accueil.urls')),
     path('api/mai/', include('mai.urls')),
     path('api/documents/', include('documents.urls')),
     path('api/organigramme/', include('organigramme.urls')),
-    # URLs d'authentification sociale (OAuth 2.0)
-    path('accounts/', include('allauth.urls')),
     # URL pour servir les fichiers média avec CORS
     path('media/<path:path>', MediaView.as_view(), name='media'),
 ]

@@ -39,18 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',    # Nécessaire pour allauth
     'rest_framework',           # Django REST Framework
     'corsheaders',             # CORS pour frontend
     'django_filters',          # Filtres pour DRF
-    'allauth',                 # Django Allauth
-    'allauth.account',         # Comptes allauth
-    'allauth.socialaccount',   # Comptes sociaux allauth
-    'allauth.socialaccount.providers.google',  # Provider Google
+    'authentication',          # Notre app authentification
     'actualites',              # Notre app actualités
     'annuaire',                # Notre app annuaire
     'accueil',                 # Notre app accueil
-    'authentication',          # Notre app authentification
     'mai',                     # Notre app MAI (chatbot basé sur CSV)
     'documents',               # Notre app documents
     'health',                  # Notre app health (endpoints de santé)
@@ -64,8 +59,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # Middleware Allauth
-    # 'authentication.middleware.AuthenticationMiddleware',  # Temporairement désactivé
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -159,9 +152,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Configuration du modèle User personnalisé
-AUTH_USER_MODEL = 'authentication.User'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
@@ -288,42 +278,11 @@ RAG_EMBEDDING_MODEL = 'all-MiniLM-L6-v2'
 RAG_SIMILARITY_THRESHOLD = 0.4  # Seuil abaissé pour trouver plus de résultats
 RAG_MAX_DOCUMENTS = 5
 
-# Configuration OAuth 2.0 Google
-SITE_ID = 1
-
-# Configuration Allauth
+# Configuration d'authentification basique Django
+AUTH_USER_MODEL = 'authentication.User'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
 ]
-
-# Configuration Google OAuth 2.0
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/drive.readonly',
-            'https://www.googleapis.com/auth/calendar.readonly',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
-        'OAUTH_PKCE_ENABLED': True,
-    }
-}
-
-# Configuration des comptes sociaux
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
-SOCIALACCOUNT_EMAIL_REQUIRED = True
-SOCIALACCOUNT_USERNAME_REQUIRED = False
-SOCIALACCOUNT_AUTO_SIGNUP = True
-SOCIALACCOUNT_LOGIN_ON_GET = True
-
-# Configuration des variables d'environnement OAuth
-GOOGLE_OAUTH2_CLIENT_ID = config('GOOGLE_OAUTH2_CLIENT_ID', default='1097497114713-d41if19v9680foj5rk6su0vdbm8708bd.apps.googleusercontent.com')
-GOOGLE_OAUTH2_CLIENT_SECRET = config('GOOGLE_OAUTH2_CLIENT_SECRET', default='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')
 
 # URLs de redirection OAuth
 LOGIN_REDIRECT_URL = 'http://localhost:3000/accueil'
