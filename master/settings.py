@@ -39,23 +39,24 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',           # Django REST Framework
-    'corsheaders',             # CORS pour frontend
-    'django_filters',          # Filtres pour DRF
-    'authentication',          # Notre app authentification
-    'actualites',              # Notre app actualités
-    'annuaire',                # Notre app annuaire
-    'accueil',                 # Notre app accueil
-    'mai',                     # Notre app MAI (chatbot basé sur CSV)
-    'documents',               # Notre app documents
-    'health',                  # Notre app health (endpoints de santé)
-    'organigramme',            # Notre app organigramme
+    'rest_framework',          
+    'corsheaders',         
+    'django_filters',       
+    'authentication',         
+    'actualites',            
+    'annuaire',                
+    'accueil',             
+    'mai',                  
+    'documents',             
+    'health',                  
+    'organigramme',            
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # CORS
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'master.session_debug_middleware.SessionDebugMiddleware',  # Debug sessions
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -198,11 +199,13 @@ CSRF_COOKIE_SECURE = False  # HTTP en développement
 
 # Configuration des sessions
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 86400  # 24 heures
+SESSION_COOKIE_AGE = 86400  # 24 heures (86400 secondes = 24h)
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = False  # HTTP en développement
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = True  # Sauvegarder la session à chaque requête
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Ne pas expirer à la fermeture du navigateur
+# SESSION_COOKIE_DOMAIN = None  # Par défaut, le domaine est celui de la requête
 
 # REST Framework Configuration
 REST_FRAMEWORK = {

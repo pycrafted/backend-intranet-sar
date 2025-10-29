@@ -16,7 +16,9 @@ class Migration(migrations.Migration):
             name='DocumentEmbedding',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content', models.TextField(help_text='Contenu du document (question + réponse)')),
+                ('content_type', models.CharField(blank=True, help_text='Type de contenu', max_length=100, null=True)),
+                ('content_id', models.IntegerField(blank=True, help_text='ID du contenu', null=True)),
+                ('content_text', models.TextField(help_text='Contenu du document (question + réponse)')),
                 ('embedding', models.JSONField(help_text="Vecteur d'embedding 384D généré par all-MiniLM-L6-v2")),
                 ('metadata', models.JSONField(default=dict, help_text='Métadonnées du document (question, answer, source, etc.)')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

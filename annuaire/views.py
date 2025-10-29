@@ -20,6 +20,7 @@ class DepartmentListCreateView(generics.ListCreateAPIView):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     permission_classes = [AllowAny]
+    pagination_class = None  # Désactiver la pagination pour retourner tous les départements
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description', 'location']
     ordering_fields = ['name', 'created_at']
@@ -35,7 +36,10 @@ class DepartmentListCreateView(generics.ListCreateAPIView):
         try:
             departments = self.get_queryset()
             logger.info(f"[DEPARTMENT_LIST] {departments.count()} départements trouvés")
-            return super().list(request, *args, **kwargs)
+            
+            # Désactiver la pagination en retournant directement les données
+            serializer = self.get_serializer(departments, many=True)
+            return Response(serializer.data)
         except Exception as e:
             logger.error(f"[DEPARTMENT_LIST] Erreur: {str(e)}")
             return Response({
