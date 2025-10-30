@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User
+from django.contrib.auth.models import Group
 
 
 class DepartmentNestedSerializer(serializers.Serializer):
@@ -30,6 +31,9 @@ class UserSerializer(serializers.ModelSerializer):
     manager_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     avatar_url = serializers.SerializerMethodField()
     avatar = serializers.ImageField(required=False, allow_null=True)
+    groups_names = serializers.SerializerMethodField()
+    is_admin_group = serializers.SerializerMethodField()
+    is_communication_group = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -39,6 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
             'manager', 'manager_id',
             'avatar', 'avatar_url',
             'is_active', 'is_staff', 'is_superuser', 
+            'groups_names', 'is_admin_group', 'is_communication_group',
             'last_login', 'date_joined'
         ]
         read_only_fields = ['id', 'last_login', 'date_joined']
@@ -54,6 +59,15 @@ class UserSerializer(serializers.ModelSerializer):
                 base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
                 return f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
         return None
+
+    def get_groups_names(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
+
+    def get_is_admin_group(self, obj):
+        return obj.groups.filter(name__iexact='administrateur').exists()
+
+    def get_is_communication_group(self, obj):
+        return obj.groups.filter(name__iexact='communication').exists()
     
     def update(self, instance, validated_data):
         """Override pour gérer department_id et manager_id"""
@@ -140,6 +154,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         username = email.split('@')[0]
         
         user = User.objects.create_user(username=username, password=password, **validated_data)
+        # Assigner par défaut le groupe "utilisateur simple"
+        try:
+            default_group, _ = Group.objects.get_or_create(name="utilisateur simple")
+            user.groups.add(default_group)
+        except Exception:
+            # Ne pas bloquer la création si le groupe n'existe pas encore
+            pass
         return user
 
 
@@ -154,6 +175,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
     avatar = serializers.ImageField(required=False, allow_null=True)
     
+    groups_names = serializers.SerializerMethodField(read_only=True)
+    is_admin_group = serializers.SerializerMethodField(read_only=True)
+    is_communication_group = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = User
         fields = [
@@ -162,10 +187,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'manager', 'manager_id',
             'avatar', 'avatar_url',
             'is_active', 'is_staff', 'is_superuser', 
+            'groups_names', 'is_admin_group', 'is_communication_group',
             'last_login', 'date_joined'
         ]
         read_only_fields = [
-            'id', 'username', 'is_active', 'is_staff', 'is_superuser',
+            'id', 'is_active', 'is_staff', 'is_superuser',
             'last_login', 'date_joined'
         ]
     
@@ -180,6 +206,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
                 return f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
         return None
+
+    def get_groups_names(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
+
+    def get_is_admin_group(self, obj):
+        return obj.groups.filter(name__iexact='administrateur').exists()
+
+    def get_is_communication_group(self, obj):
+        return obj.groups.filter(name__iexact='communication').exists()
     
     def update(self, instance, validated_data):
         # Gérer office_phone qui mappe vers phone_fixed

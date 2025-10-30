@@ -1,10 +1,12 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from django.contrib.auth.models import Group
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model, login, logout
+from django.utils.crypto import get_random_string
 from .serializers import (
     UserSerializer, UserRegisterSerializer, UserLoginSerializer, UserProfileSerializer
 )
@@ -227,4 +229,53 @@ class UserListView(generics.ListAPIView):
         print("=" * 80)
         
         return Response(data)
+
+
+class AdminUserListView(generics.ListAPIView):
+    """Liste complète des utilisateurs (admin uniquement)"""
+    queryset = User.objects.all().select_related('department', 'manager')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Récupérer/mettre à jour/supprimer un utilisateur (admin uniquement)"""
+    queryset = User.objects.all().select_related('department', 'manager')
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+class AdminUserGroupsView(APIView):
+    """Mettre à jour les groupes d'un utilisateur (admin uniquement)"""
+    permission_classes = (IsAuthenticated, IsAdminUser)
+
+    def post(self, request, user_id: int):
+        group_names = request.data.get('groups', [])
+        if not isinstance(group_names, list):
+            return Response({'detail': 'Format invalide pour groups'}, status=400)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'Utilisateur introuvable'}, status=404)
+
+        groups = list(Group.objects.filter(name__in=group_names))
+        user.groups.set(groups)
+        user.save()
+        return Response({'message': 'Groupes mis à jour', 'groups': [g.name for g in user.groups.all()]})
+
+
+class AdminUserResetPasswordView(APIView):
+    """Réinitialiser le mot de passe d'un utilisateur (admin uniquement)"""
+    permission_classes = (IsAuthenticated, IsAdminUser)
+
+    def post(self, request, user_id: int):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'Utilisateur introuvable'}, status=404)
+
+        temp_password = get_random_string(length=12)
+        user.set_password(temp_password)
+        user.save()
+        return Response({'message': 'Mot de passe réinitialisé', 'temporary_password': temp_password})
 
