@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     'mai',                  
     'documents',             
     'health',                  
-    'organigramme',            
+    'organigramme',
+    'reseau_social',   
+    'forum',         
 ]
 
 MIDDLEWARE = [
@@ -290,4 +292,18 @@ AUTHENTICATION_BACKENDS = [
 # URLs de redirection OAuth
 LOGIN_REDIRECT_URL = 'http://localhost:3000/accueil'
 LOGOUT_REDIRECT_URL = 'http://localhost:3000/login'
+
+# ============================================================================
+# Configuration LDAP pour la synchronisation de l'annuaire
+# ============================================================================
+# Ces paramètres sont utilisés par la commande sync_ldap_employees
+# Les valeurs sont définies dans le fichier .env pour la sécurité
+LDAP_SERVER = config('LDAP_SERVER', default='10.113.243.2')
+LDAP_PORT = config('LDAP_PORT', default=389, cast=int)
+LDAP_BASE_DN = config('LDAP_BASE_DN', default='DC=sar,DC=sn')
+LDAP_BIND_DN = config('LDAP_BIND_DN', default='Administrateur@sar.sn')
+LDAP_BIND_PASSWORD = config('LDAP_BIND_PASSWORD', default='')
+# Filtre LDAP pour les utilisateurs actifs (exclut les comptes système)
+# Modifier ce filtre dans settings.py pour personnaliser les exclusions
+LDAP_USER_FILTER = "(&(objectClass=user)(objectCategory=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=*$))(!(sAMAccountName=HealthMailbox*))(!(sAMAccountName=IUSR_*))(!(sAMAccountName=IWAM_*))(!(sAMAccountName=MSOL_*))(!(sAMAccountName=AAD_*))(!(sAMAccountName=ASPNET))(!(sAMAccountName=Administrateur))(!(sAMAccountName=docubase))(!(sAMAccountName=sc1adm))(!(sAMAccountName=SAPServiceSC1))(!(sAMAccountName=ISEADMIN))(!(sAMAccountName=user.test.01))(!(sAMAccountName=solarwinds))(!(sAMAccountName=SAC_FTP))(!(sAMAccountName=SQLSERVICE)))"
 

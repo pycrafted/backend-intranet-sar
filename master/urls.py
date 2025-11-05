@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/mai/', include('mai.urls')),
     path('api/documents/', include('documents.urls')),
     path('api/organigramme/', include('organigramme.urls')),
+    path('api/reseau-social/', include('reseau_social.urls')),
     # URL pour servir les fichiers média avec CORS
     path('media/<path:path>', MediaView.as_view(), name='media'),
 ]

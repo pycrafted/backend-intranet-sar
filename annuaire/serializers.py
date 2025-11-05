@@ -127,19 +127,49 @@ class EmployeeListSerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
         """Override pour ajouter l'URL complète de l'avatar dans la réponse"""
-        data = super().to_representation(instance)
-        
-        # Ajouter l'URL complète de l'avatar si présent
-        if instance.avatar:
-            request = self.context.get('request')
-            if request:
-                data['avatar_url'] = request.build_absolute_uri(instance.avatar.url)
-            else:
-                from django.conf import settings
-                base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
-                data['avatar_url'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
-        
-        return data
+        try:
+            data = super().to_representation(instance)
+            
+            # S'assurer que initials est toujours présent (fallback si problème)
+            if 'initials' not in data or not data.get('initials'):
+                try:
+                    data['initials'] = instance.initials
+                except Exception:
+                    data['initials'] = "?"
+            
+            # S'assurer que full_name est toujours présent
+            if 'full_name' not in data or not data.get('full_name'):
+                try:
+                    data['full_name'] = instance.full_name
+                except Exception:
+                    data['full_name'] = f"{instance.first_name or ''} {instance.last_name or ''}".strip() or "Sans nom"
+            
+            # Ajouter l'URL complète de l'avatar si présent
+            if instance.avatar:
+                request = self.context.get('request')
+                if request:
+                    data['avatar_url'] = request.build_absolute_uri(instance.avatar.url)
+                else:
+                    from django.conf import settings
+                    base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
+                    data['avatar_url'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
+            
+            return data
+        except Exception as e:
+            # Fallback en cas d'erreur
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"[EMPLOYEE_SERIALIZER] Erreur dans to_representation pour {instance.id}: {e}")
+            # Retourner au moins les données de base
+            return {
+                'id': instance.id,
+                'first_name': instance.first_name or '',
+                'last_name': instance.last_name or '',
+                'full_name': instance.first_name or instance.last_name or 'Sans nom',
+                'initials': '?',
+                'email': instance.email or '',
+                'employee_id': instance.employee_id or '',
+            }
     
     def validate_phone_fixed(self, value):
         """Valider l'unicité du numéro de téléphone fixe"""

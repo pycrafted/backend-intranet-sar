@@ -39,6 +39,7 @@ class Employee(models.Model):
     
     # Informations système
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Photo de profil")
+    is_active = models.BooleanField(default=True, verbose_name="Actif", help_text="Désactivé si l'employé n'est plus dans LDAP")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Date de modification")
     
@@ -48,15 +49,30 @@ class Employee(models.Model):
         ordering = ['last_name', 'first_name']
     
     def __str__(self):
-        return f"{self.first_name} {self.last_name} - {self.position_title}"
+        name = self.full_name
+        return f"{name} - {self.position_title}" if name else f"Employé {self.employee_id}"
     
     @property
     def full_name(self):
-        return f"{self.first_name} {self.last_name}"
+        """Retourne le nom complet de l'employé"""
+        if self.last_name:
+            return f"{self.first_name} {self.last_name}".strip()
+        return self.first_name.strip() if self.first_name else "Sans nom"
     
     @property
     def initials(self):
-        return f"{self.first_name[0]}{self.last_name[0]}".upper()
+        """Génère les initiales de l'employé, gère les cas où les noms sont vides"""
+        first_init = self.first_name[0].upper() if self.first_name and len(self.first_name) > 0 else ""
+        last_init = self.last_name[0].upper() if self.last_name and len(self.last_name) > 0 else ""
+        
+        if first_init and last_init:
+            return f"{first_init}{last_init}"
+        elif first_init:
+            return f"{first_init}{first_init}"  # Double la première initiale si pas de nom
+        elif last_init:
+            return f"{last_init}{last_init}"  # Double la dernière initiale si pas de prénom
+        else:
+            return "?"  # Fallback si les deux sont vides
     
 
 

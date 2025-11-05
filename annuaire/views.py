@@ -57,7 +57,7 @@ class DepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
     """Liste et création des employés"""
-    queryset = Employee.objects.select_related('department')
+    queryset = Employee.objects.select_related('department').filter(is_active=True)
     serializer_class = EmployeeListSerializer
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -109,7 +109,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
             
             # Vérification de l'unicité de l'email
             email = request.data.get('email')
-            if Employee.objects.filter(email=email).exists():
+            if Employee.objects.filter(email=email, is_active=True).exists():
                 logger.error(f"[EMPLOYEE_CREATE] Email déjà existant: {email}")
                 return Response({
                     'error': 'Email déjà existant',
@@ -119,7 +119,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
             
             # Vérification de l'unicité de l'employee_id
             employee_id = request.data.get('employee_id')
-            if Employee.objects.filter(employee_id=employee_id).exists():
+            if Employee.objects.filter(employee_id=employee_id, is_active=True).exists():
                 logger.error(f"[EMPLOYEE_CREATE] Matricule déjà existant: {employee_id}")
                 return Response({
                     'error': 'Matricule déjà existant',
@@ -199,7 +199,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
 
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Détail, modification et suppression d'un employé"""
-    queryset = Employee.objects.select_related('department').all()
+    queryset = Employee.objects.select_related('department').filter(is_active=True)
     serializer_class = EmployeeDetailSerializer
     permission_classes = [AllowAny]
 
@@ -214,7 +214,7 @@ def employee_search(request):
     level = request.GET.get('level', '')
     queryset = Employee.objects.select_related(
         'department'
-    )
+    ).filter(is_active=True)
     
     if query:
         queryset = queryset.filter(
@@ -249,7 +249,7 @@ def employee_search(request):
 def department_statistics(request):
     """Retourne les statistiques par département"""
     stats = Department.objects.annotate(
-        total_employees=Count('employees')
+        total_employees=Count('employees', filter=Q(employees__is_active=True))
     ).values(
         'id', 'name', 'total_employees'
     )
@@ -283,32 +283,49 @@ def employee_hierarchy_data(request):
     """
     employees = Employee.objects.select_related(
         'department'
-    )
+    ).filter(is_active=True)
     
     hierarchy_data = {}
     
     for employee in employees:
-        # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
-        level = 1
-        
-        if level not in hierarchy_data:
-            hierarchy_data[level] = []
-        
-        hierarchy_data[level].append({
-            'id': employee.id,
-            'name': employee.full_name,
-            'role': employee.position_title,
-            'department': employee.department.name,
-            'email': employee.email,
-            'phone_fixed': employee.phone_fixed,
-            'phone_mobile': employee.phone_mobile,
+        try:
+            # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
+            level = 1
+            
+            if level not in hierarchy_data:
+                hierarchy_data[level] = []
+            
+            # Gérer les cas où full_name ou initials peuvent échouer
+            try:
+                full_name = employee.full_name
+            except Exception:
+                full_name = f"{employee.first_name or ''} {employee.last_name or ''}".strip() or "Sans nom"
+            
+            try:
+                initials = employee.initials
+            except Exception:
+                initials = "?"
+            
+            hierarchy_data[level].append({
+                'id': employee.id,
+                'name': full_name,
+                'role': employee.position_title or 'Non spécifié',
+                'department': employee.department.name if employee.department else 'Non affecté',
+                'email': employee.email or '',
+                'phone_fixed': employee.phone_fixed or '',
+                'phone_mobile': employee.phone_mobile or '',
                 'location': 'Non spécifié',
-            'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
-            'initials': employee.initials,
-            'level': level,
-            'parentId': None,  # Plus de manager
-            'children': []
-        })
+                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+                'initials': initials,
+                'level': level,
+                'parentId': None,  # Plus de manager
+                'children': []
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"[HIERARCHY_DATA] Erreur pour employé {employee.id}: {e}")
+            continue
     
     return Response(hierarchy_data)
 
@@ -439,32 +456,49 @@ def annuaire_hierarchy_data(request):
     """
     employees = Employee.objects.select_related(
         'department'
-    )
+    ).filter(is_active=True)
     
     hierarchy_data = {}
     
     for employee in employees:
-        # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
-        level = 1
-        
-        if level not in hierarchy_data:
-            hierarchy_data[level] = []
-        
-        hierarchy_data[level].append({
-            'id': employee.id,
-            'name': employee.full_name,
-            'role': employee.position_title,
-            'department': employee.department.name,
-            'email': employee.email,
-            'phone_fixed': employee.phone_fixed,
-            'phone_mobile': employee.phone_mobile,
-            'location': 'Non spécifié',
-            'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
-            'initials': employee.initials,
-            'level': level,
-            'parentId': None,  # Plus de manager
-            'children': []
-        })
+        try:
+            # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
+            level = 1
+            
+            if level not in hierarchy_data:
+                hierarchy_data[level] = []
+            
+            # Gérer les cas où full_name ou initials peuvent échouer
+            try:
+                full_name = employee.full_name
+            except Exception:
+                full_name = f"{employee.first_name or ''} {employee.last_name or ''}".strip() or "Sans nom"
+            
+            try:
+                initials = employee.initials
+            except Exception:
+                initials = "?"
+            
+            hierarchy_data[level].append({
+                'id': employee.id,
+                'name': full_name,
+                'role': employee.position_title or 'Non spécifié',
+                'department': employee.department.name if employee.department else 'Non affecté',
+                'email': employee.email or '',
+                'phone_fixed': employee.phone_fixed or '',
+                'phone_mobile': employee.phone_mobile or '',
+                'location': 'Non spécifié',
+                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+                'initials': initials,
+                'level': level,
+                'parentId': None,  # Plus de manager
+                'children': []
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"[HIERARCHY_DATA] Erreur pour employé {employee.id}: {e}")
+            continue
     
     return Response(hierarchy_data)
 
@@ -493,31 +527,48 @@ def employee_hierarchy_data(request):
     """
     employees = Employee.objects.select_related(
         'department'
-    )
+    ).filter(is_active=True)
     
     hierarchy_data = {}
     
     for employee in employees:
-        # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
-        level = 1
-        
-        if level not in hierarchy_data:
-            hierarchy_data[level] = []
-        
-        hierarchy_data[level].append({
-            'id': employee.id,
-            'name': employee.full_name,
-            'role': employee.position_title,
-            'department': employee.department.name,
-            'email': employee.email,
-            'phone_fixed': employee.phone_fixed,
-            'phone_mobile': employee.phone_mobile,
+        try:
+            # Tous les employés sont au niveau 1 maintenant (pas de hiérarchie)
+            level = 1
+            
+            if level not in hierarchy_data:
+                hierarchy_data[level] = []
+            
+            # Gérer les cas où full_name ou initials peuvent échouer
+            try:
+                full_name = employee.full_name
+            except Exception:
+                full_name = f"{employee.first_name or ''} {employee.last_name or ''}".strip() or "Sans nom"
+            
+            try:
+                initials = employee.initials
+            except Exception:
+                initials = "?"
+            
+            hierarchy_data[level].append({
+                'id': employee.id,
+                'name': full_name,
+                'role': employee.position_title or 'Non spécifié',
+                'department': employee.department.name if employee.department else 'Non affecté',
+                'email': employee.email or '',
+                'phone_fixed': employee.phone_fixed or '',
+                'phone_mobile': employee.phone_mobile or '',
                 'location': 'Non spécifié',
-            'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
-            'initials': employee.initials,
-            'level': level,
-            'parentId': None,  # Plus de manager
-            'children': []
-        })
+                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+                'initials': initials,
+                'level': level,
+                'parentId': None,  # Plus de manager
+                'children': []
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"[HIERARCHY_DATA] Erreur pour employé {employee.id}: {e}")
+            continue
     
     return Response(hierarchy_data)

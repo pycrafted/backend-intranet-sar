@@ -65,3 +65,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Groupes par défaut configurés avec succès."))
 
 
+
+
+
+
