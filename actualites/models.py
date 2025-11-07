@@ -13,14 +13,13 @@ class Article(models.Model):
     # Champs communs
     id = models.AutoField(primary_key=True)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    title = models.CharField(max_length=200, blank=True, null=True, help_text='Titre de l\'article (optionnel)')
+    title = models.CharField(max_length=1000, blank=True, null=True, help_text='Titre de l\'article (optionnel)')
     content = models.TextField(blank=True, null=True, help_text='Contenu de l\'article (optionnel)')
     date = models.DateField(default=timezone.now, help_text='Date de publication (par défaut: maintenant)')
     time = models.TimeField(default=timezone.now, help_text='Heure de publication (par défaut: maintenant)')
     image = models.ImageField(upload_to='articles/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
     
     # Nouveaux champs pour les cartes adaptatives
     video = models.FileField(upload_to='videos/', blank=True, null=True, help_text='Fichier vidéo uploadé')

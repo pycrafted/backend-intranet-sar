@@ -10,7 +10,7 @@ class DirectionAdmin(admin.ModelAdmin):
 
 @admin.register(Agent)
 class AgentAdmin(admin.ModelAdmin):
-    list_display = ['full_name', 'job_title', 'matricule', 'email']
+    list_display = ['full_name', 'job_title', 'manager', 'main_direction']
     list_filter = ['directions', 'created_at']
     search_fields = ['first_name', 'last_name', 'email', 'matricule', 'job_title']
     filter_horizontal = ['directions']
@@ -20,6 +20,11 @@ class AgentAdmin(admin.ModelAdmin):
         form = super().get_form(request, obj, **kwargs)
         form.base_fields['directions'].label = 'Directions associées'
         form.base_fields['manager'].label = 'n+1'
+        
+        # Trier les managers (n+1) par ordre alphabétique (prénom de A à Z)
+        if 'manager' in form.base_fields:
+            form.base_fields['manager'].queryset = Agent.objects.all().order_by('first_name', 'last_name')
+        
         return form
     
     fieldsets = (

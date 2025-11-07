@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import SafetyData, Idea, MenuItem, DayMenu, Event
+from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department
 
 
 class SafetyDataSerializer(serializers.ModelSerializer):
@@ -100,12 +100,45 @@ class SafetyDataCreateUpdateSerializer(serializers.ModelSerializer):
         return data
 
 
+class DepartmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour les départements
+    """
+    class Meta:
+        model = Department
+        fields = [
+            'id',
+            'code',
+            'name',
+            'emails',
+            'is_active',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate_emails(self, value):
+        """
+        Valide que les emails sont bien formatés
+        """
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Les emails doivent être une liste.")
+        
+        for email in value:
+            if not isinstance(email, str) or '@' not in email:
+                raise serializers.ValidationError(f"Email invalide: {email}")
+        
+        return value
+
+
 class IdeaSerializer(serializers.ModelSerializer):
     """
     Serializer pour les idées soumises
     """
-    department_display = serializers.CharField(source='get_department_display', read_only=True)
+    department_display = serializers.CharField(source='department.name', read_only=True)
+    department_code = serializers.CharField(source='department.code', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    department_detail = DepartmentSerializer(source='department', read_only=True)
     
     class Meta:
         model = Idea
@@ -114,6 +147,8 @@ class IdeaSerializer(serializers.ModelSerializer):
             'description',
             'department',
             'department_display',
+            'department_code',
+            'department_detail',
             'status',
             'status_display',
             'submitted_at',
@@ -140,9 +175,14 @@ class IdeaCreateSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate_department(self, value):
-        valid_departments = [choice[0] for choice in Idea.DEPARTMENT_CHOICES]
-        if value not in valid_departments:
-            raise serializers.ValidationError("Département invalide.")
+        """
+        Valide que le département existe et est actif
+        """
+        if not value:
+            raise serializers.ValidationError("Le département est obligatoire.")
+        
+        if not value.is_active:
+            raise serializers.ValidationError("Ce département n'est pas actif.")
         
         return value
 

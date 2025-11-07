@@ -101,7 +101,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserLoginSerializer(serializers.Serializer):
-    """Serializer pour la connexion utilisateur"""
+    """Serializer pour la connexion utilisateur avec authentification LDAP"""
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
     
@@ -110,12 +110,25 @@ class UserLoginSerializer(serializers.Serializer):
         password = attrs.get('password')
         
         if email and password:
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                raise serializers.ValidationError('Email ou mot de passe incorrect.')
+            # Utiliser l'authentification Django qui essaiera les backends dans l'ordre
+            # Le backend LDAP sera appelé en premier
+            from django.contrib.auth import authenticate
             
-            if not user.check_password(password):
+            # Authentifier avec LDAP (via le backend LDAPBackend)
+            user = authenticate(request=self.context.get('request'), username=email, password=password)
+            
+            if not user:
+                # Si LDAP échoue, essayer avec le backend ModelBackend (comptes locaux)
+                try:
+                    django_user = User.objects.get(email=email)
+                    if django_user.check_password(password):
+                        user = django_user
+                    else:
+                        raise serializers.ValidationError('Email ou mot de passe incorrect.')
+                except User.DoesNotExist:
+                    raise serializers.ValidationError('Email ou mot de passe incorrect.')
+            
+            if not user:
                 raise serializers.ValidationError('Email ou mot de passe incorrect.')
             
             if not user.is_active:

@@ -60,7 +60,10 @@ class Agent(models.Model):
     )
     email = models.EmailField(
         verbose_name="Email",
-        unique=True
+        unique=True,
+        blank=True,
+        null=True,
+        help_text="Email de l'agent (peut être vide si non renseigné dans LDAP)"
     )
     phone_fixed = models.CharField(
         max_length=20,

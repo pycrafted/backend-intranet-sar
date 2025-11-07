@@ -20,13 +20,13 @@ class DepartmentAdmin(admin.ModelAdmin):
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = [
-        'full_name', 'employee_id', 'position_title', 'department'
+        'full_name', 'email', 'position_title', 'department'
     ]
     list_filter = [
         'department'
     ]
     search_fields = [
-        'first_name', 'last_name', 'email', 'employee_id', 
+        'first_name', 'last_name', 'email', 
         'position_title'
     ]
     ordering = ['last_name', 'first_name']
@@ -36,7 +36,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             'fields': ('first_name', 'last_name', 'email', 'phone_fixed', 'phone_mobile', 'avatar')
         }),
         ('Informations professionnelles', {
-            'fields': ('employee_id', 'department', 'position_title')
+            'fields': ('department', 'position_title')
         }),
     )
     

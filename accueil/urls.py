@@ -19,6 +19,10 @@ urlpatterns = [
     path('ideas/<int:pk>/update/', views.IdeaUpdateAPIView.as_view(), name='idea-update'),
     path('ideas/<int:pk>/delete/', views.IdeaDeleteAPIView.as_view(), name='idea-delete'),
     
+    # Endpoints pour les départements
+    path('departments/', views.DepartmentListAPIView.as_view(), name='department-list'),
+    path('departments/<int:pk>/', views.DepartmentDetailAPIView.as_view(), name='department-detail'),
+    
     # Endpoints pour le menu
     path('menu/items/', views.MenuItemListAPIView.as_view(), name='menu-item-list'),
     path('menu/items/<int:pk>/', views.MenuItemDetailAPIView.as_view(), name='menu-item-detail'),

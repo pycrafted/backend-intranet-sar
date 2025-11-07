@@ -48,8 +48,11 @@ class Command(BaseCommand):
                     # Utiliser le nom comme prénom si le prénom est vide
                     employee.first_name = employee.last_name
                 else:
-                    # Utiliser employee_id comme fallback
-                    employee.first_name = employee.employee_id
+                    # Utiliser l'email comme fallback (sans le @)
+                    if employee.email:
+                        employee.first_name = employee.email.split('@')[0]
+                    else:
+                        employee.first_name = "Prénom"
             
             # Corriger le nom si vide
             if not employee.last_name or employee.last_name.strip() == '':
@@ -57,19 +60,22 @@ class Command(BaseCommand):
                     # Utiliser le prénom comme nom si le nom est vide
                     employee.last_name = employee.first_name
                 else:
-                    # Utiliser employee_id comme fallback
-                    employee.last_name = employee.employee_id
+                    # Utiliser l'email comme fallback (sans le @)
+                    if employee.email:
+                        employee.last_name = employee.email.split('@')[0]
+                    else:
+                        employee.last_name = "Nom"
             
             if dry_run:
                 self.stdout.write(
-                    f"  [DRY-RUN] {employee.employee_id}: "
+                    f"  [DRY-RUN] {employee.email}: "
                     f"'{original_first}' '{original_last}' → '{employee.first_name}' '{employee.last_name}'"
                 )
             else:
                 employee.save(update_fields=['first_name', 'last_name'])
                 fixed_count += 1
                 self.stdout.write(
-                    f"  ✅ {employee.employee_id}: "
+                    f"  ✅ {employee.email}: "
                     f"'{original_first}' '{original_last}' → '{employee.first_name}' '{employee.last_name}'"
                 )
         

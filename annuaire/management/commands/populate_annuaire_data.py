@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 "email": "maimoumadiagne@sar.sn",
                 "phone_fixed": "+221 33 825 96 21",
                 "phone_mobile": "77 459 63 21",
-                "employee_id": "SAR001",
+                # employee_id supprimé - l'email sert d'identifiant unique
                 "position_title": "Directrice Commerciale et Marketing",
                 "department": "Direction Commerciale et Marketing"
             },
@@ -61,7 +61,6 @@ class Command(BaseCommand):
                 "email": "mamadoudiop@sar.sn",
                 "phone_fixed": "+221 33 825 03 20",
                 "phone_mobile": "77 250 31 20",
-                "employee_id": "SAR002",
                 "position_title": "Directeur général",
                 "department": "Administration"
             },
@@ -71,7 +70,7 @@ class Command(BaseCommand):
                 "email": "oumardiouf@sar.sn",
                 "phone_fixed": "+221 33 825 98 31",
                 "phone_mobile": None,
-                "employee_id": "SAR003",
+003",
                 "position_title": "Directeur des Ressources Humaines",
                 "department": "Direction des Ressources Humaines"
             },
@@ -81,7 +80,7 @@ class Command(BaseCommand):
                 "email": "souleymaneseck@sar.sn",
                 "phone_fixed": "+221 33 825 59 13",
                 "phone_mobile": "77 145 93 13",
-                "employee_id": "SAR004",
+004",
                 "position_title": "Directeur EXECUTIVE - SUPPORT",
                 "department": "Direction EXECUTIVE - SUPPORT"
             },
@@ -91,7 +90,7 @@ class Command(BaseCommand):
                 "email": "ousmanesembene@sar.sn",
                 "phone_fixed": None,
                 "phone_mobile": "77 514 96 38",
-                "employee_id": "SAR005",
+005",
                 "position_title": "Directeur Technique",
                 "department": "Direction Technique"
             },
@@ -101,7 +100,7 @@ class Command(BaseCommand):
                 "email": "daoudakebe@sar.sn",
                 "phone_fixed": "+221 33 825 63 20",
                 "phone_mobile": "77 256 39 20",
-                "employee_id": "SAR006",
+006",
                 "position_title": "Directeur EXECUTIVE OPERATIONS",
                 "department": "Direction Executif"
             },
@@ -111,7 +110,7 @@ class Command(BaseCommand):
                 "email": "fatoudiagne@sar.sn",
                 "phone_fixed": None,
                 "phone_mobile": None,
-                "employee_id": "SAR007",
+007",
                 "position_title": "Responsable Qualité",
                 "department": "Direction Qualité"
             },
@@ -121,7 +120,7 @@ class Command(BaseCommand):
                 "email": "ibrahimafall@sar.sn",
                 "phone_fixed": "+221 33 825 67 90",
                 "phone_mobile": "77 456 78 90",
-                "employee_id": "SAR008",
+008",
                 "position_title": "Chef de Projet",
                 "department": "Direction Technique"
             },
@@ -131,7 +130,7 @@ class Command(BaseCommand):
                 "email": "aminatasarr@sar.sn",
                 "phone_fixed": "+221 33 825 78 01",
                 "phone_mobile": "77 567 89 01",
-                "employee_id": "SAR009",
+009",
                 "position_title": "Analyste Financier",
                 "department": "Direction Financière"
             },
@@ -141,7 +140,7 @@ class Command(BaseCommand):
                 "email": "cheikhndiaye@sar.sn",
                 "phone_fixed": "+221 33 825 45 12",
                 "phone_mobile": "77 123 45 67",
-                "employee_id": "SAR010",
+010",
                 "position_title": "Chef de Projet IT",
                 "department": "Direction Technique"
             },
@@ -151,7 +150,7 @@ class Command(BaseCommand):
                 "email": "khadijadiagne@sar.sn",
                 "phone_fixed": "+221 33 825 67 89",
                 "phone_mobile": "77 234 56 78",
-                "employee_id": "SAR011",
+011",
                 "position_title": "Responsable Communication",
                 "department": "Direction Commerciale et Marketing"
             },
@@ -161,7 +160,7 @@ class Command(BaseCommand):
                 "email": "moussafall@sar.sn",
                 "phone_fixed": "+221 33 825 34 56",
                 "phone_mobile": "77 345 67 89",
-                "employee_id": "SAR012",
+012",
                 "position_title": "Ingénieur Système",
                 "department": "Direction Technique"
             },
@@ -171,7 +170,7 @@ class Command(BaseCommand):
                 "email": "aichaba@sar.sn",
                 "phone_fixed": "+221 33 825 89 01",
                 "phone_mobile": "77 456 78 90",
-                "employee_id": "SAR013",
+013",
                 "position_title": "Comptable Senior",
                 "department": "Direction Financière"
             },
@@ -181,7 +180,7 @@ class Command(BaseCommand):
                 "email": "papesarr@sar.sn",
                 "phone_fixed": "+221 33 825 12 34",
                 "phone_mobile": "77 567 89 01",
-                "employee_id": "SAR014",
+014",
                 "position_title": "Responsable Logistique",
                 "department": "Direction Logistique"
             },
@@ -191,7 +190,7 @@ class Command(BaseCommand):
                 "email": "mariamadiagne@sar.sn",
                 "phone_fixed": "+221 33 825 56 78",
                 "phone_mobile": "77 678 90 12",
-                "employee_id": "SAR015",
+015",
                 "position_title": "Développeuse Frontend",
                 "department": "Direction Technique"
             },
@@ -201,7 +200,7 @@ class Command(BaseCommand):
                 "email": "modoundiaye@sar.sn",
                 "phone_fixed": "+221 33 825 90 12",
                 "phone_mobile": "77 789 01 23",
-                "employee_id": "SAR016",
+016",
                 "position_title": "Chef de Service RH",
                 "department": "Direction des Ressources Humaines"
             },
@@ -211,7 +210,7 @@ class Command(BaseCommand):
                 "email": "fatouseck@sar.sn",
                 "phone_fixed": "+221 33 825 23 45",
                 "phone_mobile": "77 890 12 34",
-                "employee_id": "SAR017",
+017",
                 "position_title": "Analyste Business",
                 "department": "Direction Commerciale et Marketing"
             },
@@ -221,7 +220,7 @@ class Command(BaseCommand):
                 "email": "sambafall@sar.sn",
                 "phone_fixed": "+221 33 825 67 89",
                 "phone_mobile": "77 901 23 45",
-                "employee_id": "SAR018",
+018",
                 "position_title": "Ingénieur Réseau",
                 "department": "Direction Technique"
             },
@@ -231,7 +230,7 @@ class Command(BaseCommand):
                 "email": "awadiagne@sar.sn",
                 "phone_fixed": "+221 33 825 45 67",
                 "phone_mobile": "77 012 34 56",
-                "employee_id": "SAR019",
+019",
                 "position_title": "Responsable Formation",
                 "department": "Direction des Ressources Humaines"
             },
@@ -241,7 +240,7 @@ class Command(BaseCommand):
                 "email": "mamadousarr@sar.sn",
                 "phone_fixed": "+221 33 825 78 90",
                 "phone_mobile": "77 123 45 67",
-                "employee_id": "SAR020",
+020",
                 "position_title": "Chef de Projet Infrastructure",
                 "department": "Direction EXECUTIVE - SUPPORT"
             },
@@ -251,7 +250,7 @@ class Command(BaseCommand):
                 "email": "ndeyefall@sar.sn",
                 "phone_fixed": "+221 33 825 12 34",
                 "phone_mobile": "77 234 56 78",
-                "employee_id": "SAR021",
+021",
                 "position_title": "Assistante de Direction",
                 "department": "Administration"
             },
@@ -261,7 +260,7 @@ class Command(BaseCommand):
                 "email": "moussandiaye@sar.sn",
                 "phone_fixed": "+221 33 825 56 78",
                 "phone_mobile": "77 345 67 89",
-                "employee_id": "SAR022",
+022",
                 "position_title": "Développeur Backend",
                 "department": "Direction Technique"
             },
@@ -271,7 +270,7 @@ class Command(BaseCommand):
                 "email": "aminatadiagne@sar.sn",
                 "phone_fixed": "+221 33 825 78 90",
                 "phone_mobile": "77 456 78 90",
-                "employee_id": "SAR023",
+023",
                 "position_title": "Responsable Marketing Digital",
                 "department": "Direction Commerciale et Marketing"
             },
@@ -281,7 +280,7 @@ class Command(BaseCommand):
                 "email": "cheikhsarr@sar.sn",
                 "phone_fixed": "+221 33 825 90 12",
                 "phone_mobile": "77 567 89 01",
-                "employee_id": "SAR024",
+024",
                 "position_title": "Contrôleur de Gestion",
                 "department": "Direction Financière"
             },
@@ -291,7 +290,7 @@ class Command(BaseCommand):
                 "email": "fatoundiaye@sar.sn",
                 "phone_fixed": "+221 33 825 12 34",
                 "phone_mobile": "77 678 90 12",
-                "employee_id": "SAR025",
+025",
                 "position_title": "Responsable Achats",
                 "department": "Direction Logistique"
             }
@@ -309,9 +308,9 @@ class Command(BaseCommand):
                     )
                     continue
 
-                # Créer l'employé
+                # Créer l'employé (utiliser email comme identifiant unique)
                 employee, created = Employee.objects.get_or_create(
-                    employee_id=emp_data['employee_id'],
+                    email=emp_data['email'],
                     defaults={
                         'first_name': emp_data['first_name'],
                         'last_name': emp_data['last_name'],

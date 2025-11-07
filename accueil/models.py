@@ -3,6 +3,56 @@ from django.utils import timezone
 from datetime import datetime, date, timedelta
 
 
+class Department(models.Model):
+    """
+    Modèle pour gérer les départements de l'entreprise
+    Chaque département peut avoir plusieurs emails associés pour l'envoi groupé
+    """
+    code = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Code unique du département (ex: 'production', 'maintenance')"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Nom complet du département (ex: 'Production', 'Maintenance')"
+    )
+    emails = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste des emails associés au département pour l'envoi groupé"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indique si le département est actif"
+    )
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Département"
+        verbose_name_plural = "Départements"
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    def get_emails_list(self):
+        """
+        Retourne la liste des emails valides du département
+        """
+        if not self.emails:
+            return []
+        # Filtrer les emails vides ou invalides
+        return [email for email in self.emails if email and '@' in email]
+
+
 class Idea(models.Model):
     """
     Modèle pour gérer les idées soumises via la boîte à idées
@@ -15,26 +65,14 @@ class Idea(models.Model):
         ('implemented', 'Implémentée'),
     ]
     
-    DEPARTMENT_CHOICES = [
-        ('production', 'Production'),
-        ('maintenance', 'Maintenance'),
-        ('quality', 'Qualité'),
-        ('safety', 'Sécurité'),
-        ('logistics', 'Logistique'),
-        ('it', 'Informatique'),
-        ('hr', 'Ressources Humaines'),
-        ('finance', 'Finance'),
-        ('marketing', 'Marketing'),
-        ('other', 'Autre'),
-    ]
-    
     # Champs principaux
     description = models.TextField(
         help_text="Description détaillée de l'idée"
     )
-    department = models.CharField(
-        max_length=20,
-        choices=DEPARTMENT_CHOICES,
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='ideas',
         help_text="Département concerné par l'idée"
     )
     status = models.CharField(
@@ -54,7 +92,7 @@ class Idea(models.Model):
         ordering = ['-submitted_at']
     
     def __str__(self):
-        return f"Idée #{self.id} - {self.get_department_display()} - {self.get_status_display()}"
+        return f"Idée #{self.id} - {self.department.name} - {self.get_status_display()}"
 
 
 class SafetyData(models.Model):

@@ -33,8 +33,9 @@ class Command(BaseCommand):
             'ASPNET',
         ]
         
-        # Rechercher les comptes système par employee_id
-        system_employees = Employee.objects.filter(employee_id__in=system_accounts)
+        # Rechercher les comptes système par email (format attendu: system_account@sar.sn)
+        system_emails = [f"{acc}@sar.sn" for acc in system_accounts]
+        system_employees = Employee.objects.filter(email__in=system_emails)
         
         count = system_employees.count()
         
@@ -54,5 +55,5 @@ class Command(BaseCommand):
         # Afficher la liste des comptes traités
         for emp in system_employees:
             action = "supprimé" if delete else "désactivé"
-            self.stdout.write(f"  - {emp.employee_id} ({emp.full_name}) → {action}")
+            self.stdout.write(f"  - {emp.email} ({emp.full_name}) → {action}")
 

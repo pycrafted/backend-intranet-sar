@@ -14,15 +14,13 @@ class UserAnnuaireSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
     department_name = serializers.CharField(source='department', read_only=True)
     position_title = serializers.CharField(source='position', read_only=True)
-    employee_id = serializers.CharField(read_only=True)
-    matricule = serializers.CharField(source='employee_id', read_only=True)
     
     class Meta:
         model = User
         fields = [
             'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 
-            'phone_number', 'employee_id', 'position', 'position_title', 
-            'department', 'department_name', 'matricule', 'is_active', 
+            'phone_number', 'position', 'position_title', 
+            'department', 'department_name', 'is_active', 
             'is_staff', 'is_superuser', 'avatar', 'avatar_url', 'created_at', 'updated_at'
         ]
     
@@ -58,16 +56,27 @@ class EmployeeListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des employés (version allégée)"""
     department_name = serializers.CharField(source='department.name', read_only=True)
     position_title = serializers.CharField()
-    matricule = serializers.CharField(source='employee_id', read_only=True)
-    avatar = serializers.ImageField(required=False, allow_null=True)
+    avatar = serializers.SerializerMethodField()  # Transformer en URL complète
     
     class Meta:
         model = Employee
         fields = [
             'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone_fixed', 'phone_mobile',
-            'employee_id', 'matricule', 'department', 'position_title', 'department_name',
+            'department', 'position_title', 'department_name',
             'avatar'
         ]
+    
+    def get_avatar(self, obj):
+        """Retourne l'URL complète de l'avatar"""
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            else:
+                from django.conf import settings
+                base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                return f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
+        return None
     
     def create(self, validated_data):
         """Création d'un employé avec logs détaillés"""
@@ -113,7 +122,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         logger.info(f"[EMPLOYEE_SERIALIZER] Validation des données: {data}")
         
         # Vérifier que tous les champs requis sont présents
-        required_fields = ['first_name', 'last_name', 'email', 'department', 'position_title', 'employee_id']
+        required_fields = ['first_name', 'last_name', 'email', 'department', 'position_title']
         missing_fields = [field for field in required_fields if not data.get(field)]
         
         if missing_fields:
@@ -144,15 +153,10 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                 except Exception:
                     data['full_name'] = f"{instance.first_name or ''} {instance.last_name or ''}".strip() or "Sans nom"
             
-            # Ajouter l'URL complète de l'avatar si présent
-            if instance.avatar:
-                request = self.context.get('request')
-                if request:
-                    data['avatar_url'] = request.build_absolute_uri(instance.avatar.url)
-                else:
-                    from django.conf import settings
-                    base_url = getattr(settings, 'BASE_URL', 'https://backend-intranet-sar-1.onrender.com')
-                    data['avatar_url'] = f"{base_url}{settings.MEDIA_URL}{instance.avatar.name}"
+            # avatar est déjà transformé en URL complète par get_avatar() dans SerializerMethodField
+            # On ajoute aussi avatar_url pour compatibilité avec d'autres parties du code
+            if 'avatar' in data and data['avatar']:
+                data['avatar_url'] = data['avatar']
             
             return data
         except Exception as e:
@@ -168,7 +172,6 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                 'full_name': instance.first_name or instance.last_name or 'Sans nom',
                 'initials': '?',
                 'email': instance.email or '',
-                'employee_id': instance.employee_id or '',
             }
     
     def validate_phone_fixed(self, value):
@@ -209,14 +212,13 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un employé"""
     department_name = serializers.CharField(source='department.name', read_only=True)
     position_title = serializers.CharField()
-    matricule = serializers.CharField(source='employee_id', read_only=True)
     avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = Employee
         fields = [
             'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone_fixed', 'phone_mobile',
-            'employee_id', 'matricule', 'department', 'position_title', 'department_name',
+            'department', 'position_title', 'department_name',
             'avatar',
             'created_at', 'updated_at'
         ]
@@ -298,7 +300,7 @@ class EmployeeHierarchySerializer(serializers.ModelSerializer):
         model = Employee
         fields = [
             'id', 'first_name', 'last_name', 'full_name', 'initials', 'email', 'phone_fixed', 'phone_mobile',
-            'employee_id', 'department', 'position_title', 'department_name',
+            'department', 'position_title', 'department_name',
             'avatar'
         ]
 

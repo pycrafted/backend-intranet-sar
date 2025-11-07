@@ -6,6 +6,7 @@ class User(AbstractUser):
     """
     Modèle utilisateur personnalisé pour la SAR
     Utilise le modèle User par défaut de Django
+    TOUS les comptes sont toujours actifs par défaut
     """
     matricule = models.CharField(
         max_length=50,
@@ -67,6 +68,15 @@ class User(AbstractUser):
         verbose_name="Poste occupé",
         help_text="Poste occupé par l'utilisateur (ex: DG, DSI, Comptable, Développeur)"
     )
+    
+    def save(self, *args, **kwargs):
+        """
+        Surcharge de la méthode save pour forcer is_active=True
+        Tous les comptes sont toujours actifs
+        """
+        # TOUJOURS activer le compte, que ce soit une création ou une mise à jour
+        self.is_active = True
+        super().save(*args, **kwargs)
     
     class Meta:
         verbose_name = "Utilisateur"

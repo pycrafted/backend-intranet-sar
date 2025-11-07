@@ -4,13 +4,14 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q, Count
-from .models import SafetyData, Idea, MenuItem, DayMenu, Event
+from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department
 from .serializers import (
     SafetyDataSerializer, 
     SafetyDataCreateUpdateSerializer,
     IdeaSerializer,
     IdeaCreateSerializer,
     IdeaUpdateSerializer,
+    DepartmentSerializer,
     MenuItemSerializer,
     MenuItemCreateUpdateSerializer,
     DayMenuSerializer,
@@ -177,14 +178,23 @@ class IdeaListAPIView(generics.ListAPIView):
     queryset = Idea.objects.all()
     
     def get_queryset(self):
-        # Filtrer par département si spécifié
+        # Filtrer par département si spécifié (peut être un code ou un ID)
         department = self.request.query_params.get('department', None)
         status_filter = self.request.query_params.get('status', None)
         
-        queryset = Idea.objects.all()
+        queryset = Idea.objects.select_related('department').all()
         
         if department:
-            queryset = queryset.filter(department=department)
+            # Essayer de trouver par code d'abord, puis par ID
+            try:
+                dept = Department.objects.get(code=department, is_active=True)
+                queryset = queryset.filter(department=dept)
+            except Department.DoesNotExist:
+                try:
+                    dept = Department.objects.get(id=department, is_active=True)
+                    queryset = queryset.filter(department=dept)
+                except (Department.DoesNotExist, ValueError):
+                    pass  # Si aucun département trouvé, retourner toutes les idées
         
         if status_filter:
             queryset = queryset.filter(status=status_filter)
@@ -253,19 +263,22 @@ def idea_submit(request):
 @api_view(['GET'])
 def idea_departments(request):
     """
-    API endpoint pour récupérer la liste des départements
+    API endpoint pour récupérer la liste des départements actifs
     """
     try:
-        departments = [
+        departments = Department.objects.filter(is_active=True).order_by('name')
+        departments_data = [
             {
-                'id': choice[0],
-                'name': choice[1],
-                'icon': get_department_icon(choice[0])
+                'id': dept.id,
+                'code': dept.code,
+                'name': dept.name,
+                'icon': get_department_icon(dept.code),
+                'emails': dept.get_emails_list()
             }
-            for choice in Idea.DEPARTMENT_CHOICES
+            for dept in departments
         ]
         
-        return Response(departments, status=status.HTTP_200_OK)
+        return Response(departments_data, status=status.HTTP_200_OK)
     
     except Exception as e:
         return Response(
@@ -274,9 +287,9 @@ def idea_departments(request):
         )
 
 
-def get_department_icon(department_id):
+def get_department_icon(department_code):
     """
-    Retourne l'icône correspondant au département
+    Retourne l'icône correspondant au code du département
     """
     icons = {
         'production': '🏭',
@@ -290,7 +303,35 @@ def get_department_icon(department_id):
         'marketing': '📢',
         'other': '📋',
     }
-    return icons.get(department_id, '📋')
+    return icons.get(department_code, '📋')
+
+
+# ===== VUES POUR LES DÉPARTEMENTS =====
+
+class DepartmentListAPIView(generics.ListCreateAPIView):
+    """
+    API endpoint pour lister et créer des départements
+    """
+    serializer_class = DepartmentSerializer
+    queryset = Department.objects.all()
+    
+    def get_queryset(self):
+        # Filtrer par is_active si spécifié
+        is_active = self.request.query_params.get('is_active', None)
+        queryset = Department.objects.all()
+        
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        return queryset.order_by('name')
+
+
+class DepartmentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint pour récupérer, mettre à jour ou supprimer un département
+    """
+    serializer_class = DepartmentSerializer
+    queryset = Department.objects.all()
 
 
 # ===== VUES POUR LE MENU =====

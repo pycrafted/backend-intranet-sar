@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.urls import path
 from django.http import HttpResponseRedirect
 from django.utils import timezone
-from .models import SafetyData, Idea, MenuItem, DayMenu, Event
+from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department
 
 
 @admin.register(SafetyData)
@@ -283,8 +283,10 @@ class IdeaAdmin(admin.ModelAdmin):
             'marketing': '📢',
             'other': '📋',
         }
-        icon = icons.get(obj.department, '📋')
-        return f"{icon} {obj.get_department_display()}"
+        if obj.department:
+            icon = icons.get(obj.department.code, '📋')
+            return f"{icon} {obj.department.name}"
+        return "N/A"
     department_display.short_description = 'Département'
     
     def status_display(self, obj):
@@ -679,5 +681,36 @@ class EventAdmin(admin.ModelAdmin):
             messages.SUCCESS
         )
     mark_not_all_day.short_description = "⏰ Marquer comme événement avec heure"
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    """
+    Administration des départements
+    """
+    list_display = ['code', 'name', 'is_active', 'emails_count', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['code', 'name']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('code', 'name', 'is_active')
+        }),
+        ('Emails', {
+            'fields': ('emails',),
+            'description': 'Liste des emails associés au département (format JSON: ["email1@example.com", "email2@example.com"])'
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def emails_count(self, obj):
+        """Affiche le nombre d'emails configurés"""
+        emails = obj.get_emails_list()
+        return len(emails)
+    emails_count.short_description = 'Nombre d\'emails'
 
 

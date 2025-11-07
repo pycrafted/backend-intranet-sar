@@ -35,7 +35,6 @@ class Employee(models.Model):
     # Informations professionnelles
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='employees', verbose_name="Département")
     position_title = models.CharField(max_length=100, verbose_name="Titre du poste")
-    employee_id = models.CharField(max_length=20, unique=True, verbose_name="Matricule")
     
     # Informations système
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Photo de profil")
@@ -50,7 +49,7 @@ class Employee(models.Model):
     
     def __str__(self):
         name = self.full_name
-        return f"{name} - {self.position_title}" if name else f"Employé {self.employee_id}"
+        return f"{name} - {self.position_title}" if name else f"Employé {self.id}"
     
     @property
     def full_name(self):

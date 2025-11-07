@@ -60,14 +60,15 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     queryset = Employee.objects.select_related('department').filter(is_active=True)
     serializer_class = EmployeeListSerializer
     permission_classes = [AllowAny]
+    pagination_class = None  # Désactiver la pagination pour retourner tous les employés
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['department']
-    search_fields = ['first_name', 'last_name', 'email', 'employee_id', 'position_title']
+    search_fields = ['first_name', 'last_name', 'email', 'position_title']
     ordering_fields = ['last_name', 'first_name']
     ordering = ['last_name', 'first_name']
     
     def list(self, request, *args, **kwargs):
-        """Liste des employés avec logs pour les avatars"""
+        """Liste des employés avec logs pour les avatars - Retourne TOUS les employés (pas de pagination)"""
         import logging
         logger = logging.getLogger(__name__)
         
@@ -80,11 +81,16 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
             for emp in employees[:3]:  # Logs pour les 3 premiers employés
                 logger.info(f"[EMPLOYEE_LIST] {emp.full_name}: {emp.avatar.url if emp.avatar else 'AUCUN'}")
             
-            response = super().list(request, *args, **kwargs)
-            return response
+            # IMPORTANT: Désactiver la pagination en retournant directement les données
+            # Même si pagination_class = None, parfois DRF applique quand même la pagination par défaut
+            serializer = self.get_serializer(employees, many=True)
+            return Response(serializer.data)
         except Exception as e:
             logger.error(f"[EMPLOYEE_LIST] Erreur: {str(e)}")
-            return super().list(request, *args, **kwargs)
+            # En cas d'erreur, retourner quand même sans pagination
+            employees = self.get_queryset()
+            serializer = self.get_serializer(employees, many=True)
+            return Response(serializer.data)
     
     def create(self, request, *args, **kwargs):
         """Création d'un employé avec logs détaillés"""
@@ -96,7 +102,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
         
         try:
             # Validation des données requises
-            required_fields = ['first_name', 'last_name', 'email', 'department', 'position_title', 'employee_id']
+            required_fields = ['first_name', 'last_name', 'email', 'department', 'position_title']
             missing_fields = [field for field in required_fields if not request.data.get(field)]
             
             if missing_fields:
@@ -115,16 +121,6 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
                     'error': 'Email déjà existant',
                     'field': 'email',
                     'value': email
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Vérification de l'unicité de l'employee_id
-            employee_id = request.data.get('employee_id')
-            if Employee.objects.filter(employee_id=employee_id, is_active=True).exists():
-                logger.error(f"[EMPLOYEE_CREATE] Matricule déjà existant: {employee_id}")
-                return Response({
-                    'error': 'Matricule déjà existant',
-                    'field': 'employee_id',
-                    'value': employee_id
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             # Vérification de l'existence du département
@@ -208,7 +204,10 @@ class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def employee_search(request):
-    """Recherche avancée d'employés"""
+    """
+    Recherche avancée d'employés avec filtres
+    IMPORTANT: Retourne TOUS les résultats (pas de pagination)
+    """
     query = request.GET.get('q', '')
     department = request.GET.get('department', '')
     level = request.GET.get('level', '')
@@ -221,7 +220,6 @@ def employee_search(request):
             Q(first_name__istartswith=query) |
             Q(last_name__istartswith=query) |
             Q(email__istartswith=query) |
-            Q(employee_id__istartswith=query) |
             Q(position_title__istartswith=query) |
             Q(phone_fixed__istartswith=query) |
             Q(phone_mobile__istartswith=query) |
@@ -235,7 +233,7 @@ def employee_search(request):
     # if level:
     #     queryset = queryset.filter(position__level=level)
     
-    
+    # IMPORTANT: Retourner TOUS les résultats sans pagination
     serializer = EmployeeListSerializer(queryset, many=True, context={'request': request})
     return Response(serializer.data)
 
@@ -315,7 +313,7 @@ def employee_hierarchy_data(request):
                 'phone_fixed': employee.phone_fixed or '',
                 'phone_mobile': employee.phone_mobile or '',
                 'location': 'Non spécifié',
-                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar and hasattr(employee.avatar, 'url') else None,
                 'initials': initials,
                 'level': level,
                 'parentId': None,  # Plus de manager
@@ -340,7 +338,7 @@ class AnnuaireUserListView(generics.ListAPIView):
     serializer_class = UserAnnuaireSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['first_name', 'last_name', 'email', 'matricule', 'position', 'department']
+    search_fields = ['first_name', 'last_name', 'email', 'position', 'department']
     filterset_fields = ['department', 'is_staff', 'is_superuser']
     ordering_fields = ['last_name', 'first_name', 'created_at']
     ordering = ['last_name', 'first_name']
@@ -370,7 +368,6 @@ def annuaire_user_search(request):
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query) |
             Q(email__icontains=query) |
-            Q(matricule__icontains=query) |
             Q(position_title__icontains=query) |
             Q(department__icontains=query)
         )
@@ -488,7 +485,7 @@ def annuaire_hierarchy_data(request):
                 'phone_fixed': employee.phone_fixed or '',
                 'phone_mobile': employee.phone_mobile or '',
                 'location': 'Non spécifié',
-                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar and hasattr(employee.avatar, 'url') else None,
                 'initials': initials,
                 'level': level,
                 'parentId': None,  # Plus de manager
@@ -559,7 +556,7 @@ def employee_hierarchy_data(request):
                 'phone_fixed': employee.phone_fixed or '',
                 'phone_mobile': employee.phone_mobile or '',
                 'location': 'Non spécifié',
-                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar else None,
+                'avatar': request.build_absolute_uri(employee.avatar.url) if employee.avatar and hasattr(employee.avatar, 'url') else None,
                 'initials': initials,
                 'level': level,
                 'parentId': None,  # Plus de manager
