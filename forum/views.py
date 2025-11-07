@@ -181,16 +181,11 @@ class ConversationListAPIView(generics.ListCreateAPIView):
         if author_id:
             queryset = queryset.filter(author_id=author_id)
         
-        # Filtrer par résolu/non résolu
-        is_resolved = self.request.query_params.get('is_resolved', None)
-        if is_resolved is not None:
-            queryset = queryset.filter(is_resolved=is_resolved.lower() == 'true')
-        
-        # Recherche par titre ou description
+        # Recherche par message ou contenu
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(title__icontains=search) | Q(description__icontains=search)
+                Q(message__icontains=search) | Q(content__icontains=search)
             )
         
         # Ordre : plus anciennes en premier (pour que les plus récentes soient en bas dans le frontend)
@@ -203,9 +198,7 @@ class ConversationListAPIView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         """Créer une conversation avec l'utilisateur connecté comme auteur"""
-        # Par défaut, les conversations créées depuis le frontend sont marquées comme non résolues (is_resolved=False)
-        # Mais l'utilisateur veut qu'elles soient résolues (is_resolved=True) pour être affichées
-        serializer.save(author=self.request.user, is_resolved=True)
+        serializer.save(author=self.request.user)
 
 
 class ConversationDetailAPIView(generics.RetrieveUpdateDestroyAPIView):

@@ -6,12 +6,47 @@ param(
     [string]$BackupFile
 )
 
+# ============================================================================
 # Configuration depuis .env
-$DB_HOST = "localhost"
-$DB_PORT = "5432"
-$DB_USER = "sar_user"
-$DB_NAME = "sar"
-$DB_PASSWORD = "sar123"
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans le fichier .env
+# ============================================================================
+# Fonction pour charger les variables depuis .env
+function Load-EnvFile {
+    param([string]$FilePath)
+    if (Test-Path $FilePath) {
+        Get-Content $FilePath | ForEach-Object {
+            if ($_ -match '^\s*([^#][^=]+)\s*=\s*(.+)$') {
+                $name = $matches[1].Trim()
+                $value = $matches[2].Trim()
+                Set-Variable -Name $name -Value $value -Scope Script
+            }
+        }
+    } else {
+        Write-Host "❌ Erreur : Le fichier .env n'existe pas : $FilePath" -ForegroundColor Red
+        Write-Host "💡 Créez un fichier .env avec les variables POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_DB, POSTGRES_PASSWORD" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
+# Charger le fichier .env depuis le répertoire du script
+$envFile = Join-Path $PSScriptRoot ".env"
+Load-EnvFile -FilePath $envFile
+
+# Vérifier que toutes les variables sont définies
+$requiredVars = @('POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_USER', 'POSTGRES_DB', 'POSTGRES_PASSWORD')
+foreach ($var in $requiredVars) {
+    if (-not (Get-Variable -Name $var -ErrorAction SilentlyContinue)) {
+        Write-Host "❌ Erreur : La variable $var n'est pas définie dans .env" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Assigner aux variables utilisées dans le script
+$DB_HOST = $POSTGRES_HOST
+$DB_PORT = $POSTGRES_PORT
+$DB_USER = $POSTGRES_USER
+$DB_NAME = $POSTGRES_DB
+$DB_PASSWORD = $POSTGRES_PASSWORD
 
 # Vérifier que le fichier existe
 if (-not (Test-Path $BackupFile)) {

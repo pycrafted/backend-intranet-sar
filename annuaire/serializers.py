@@ -74,7 +74,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.avatar.url)
             else:
                 from django.conf import settings
-                base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                base_url = settings.BASE_URL
                 return f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
         return None
     

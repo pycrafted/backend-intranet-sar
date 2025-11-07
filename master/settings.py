@@ -43,7 +43,29 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-sbgp$-92156s&no3gayf7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# ============================================================================
+# ALLOWED_HOSTS
+# ============================================================================
+# ⚠️ SÉCURITÉ : Doit être défini dans le fichier .env
+# Format: host1,host2,host3 (séparés par des virgules)
+# ============================================================================
+ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+
+# ============================================================================
+# Configuration des URLs (Backend et Frontend)
+# ============================================================================
+# URL de base du backend (sans /api)
+# ============================================================================
+# URLs Backend et Frontend
+# ============================================================================
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans le fichier .env
+# Aucune valeur par défaut dans le code pour éviter l'exposition de secrets
+# Variables requises dans .env :
+#   - BASE_URL (exemple: http://localhost:8000 ou https://backend.votre-domaine.com)
+#   - FRONTEND_URL (exemple: http://localhost:3000 ou https://frontend.votre-domaine.com)
+# ============================================================================
+BASE_URL = config('BASE_URL')
+FRONTEND_URL = config('FRONTEND_URL')
 
 
 # Application definition
@@ -105,24 +127,37 @@ WSGI_APPLICATION = 'master.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Configuration de la base de données - Support Local + Docker
-# Utilise PostgreSQL local par défaut, Docker si POSTGRES_HOST=postgres
+# ============================================================================
+# Configuration Base de Données PostgreSQL
+# ============================================================================
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans le fichier .env
+# Aucune valeur par défaut dans le code pour éviter l'exposition de secrets
+# Variables requises dans .env :
+#   - POSTGRES_DB
+#   - POSTGRES_USER
+#   - POSTGRES_PASSWORD
+#   - POSTGRES_HOST
+#   - POSTGRES_PORT
+# ============================================================================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='sar'),
-        'USER': config('POSTGRES_USER', default='sar_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='sar123'),
-        'HOST': config('POSTGRES_HOST', default='localhost'),  # localhost par défaut
-        'PORT': config('POSTGRES_PORT', default='5432'),  # Port 5432 par défaut PostgreSQL
+        'NAME': config('POSTGRES_DB'),
+        'USER': config('POSTGRES_USER'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),
+        'HOST': config('POSTGRES_HOST'),
+        'PORT': config('POSTGRES_PORT'),
     }
 }
 
 # Configuration alternative pour Docker (si POSTGRES_HOST=postgres)
-if config('POSTGRES_HOST', default='localhost') == 'postgres':
+# Note: Les valeurs doivent être définies dans .env même pour Docker
+if config('POSTGRES_HOST') == 'postgres':
+    # Pour Docker, les valeurs doivent être définies dans .env
+    # Pas de valeurs par défaut pour la sécurité
     DATABASES['default'].update({
-        'USER': config('POSTGRES_USER', default='postgres'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='postgres123'),
+        'USER': config('POSTGRES_USER'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),
     })
 
 
@@ -173,9 +208,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Frontend Next.js
-]
+# Utilise FRONTEND_URL depuis les variables d'environnement
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default=f'{FRONTEND_URL}'
+).split(',')
 
 # Configuration CORS pour les cookies de session
 CORS_ALLOW_CREDENTIALS = True
@@ -205,10 +242,12 @@ CORS_ALLOW_METHODS = [
 ]
 
 # Configuration CSRF pour les origines de confiance
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+# Utilise FRONTEND_URL depuis les variables d'environnement
+# Note: 127.0.0.1 peut être ajouté via la variable d'environnement si nécessaire
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default=FRONTEND_URL
+).split(',')
 
 # Configuration CSRF pour les cookies
 CSRF_COOKIE_SAMESITE = 'Lax'
@@ -257,10 +296,21 @@ RAG_CONFIG = {
 }
 
 # Configuration Redis - Phase 6
-REDIS_HOST = config('REDIS_HOST', default='localhost')
-REDIS_PORT = config('REDIS_PORT', default=6379)
-REDIS_DB = config('REDIS_DB', default=0)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)
+# ============================================================================
+# Configuration Redis
+# ============================================================================
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans le fichier .env
+# Aucune valeur par défaut dans le code pour éviter l'exposition de secrets
+# Variables requises dans .env :
+#   - REDIS_HOST
+#   - REDIS_PORT
+#   - REDIS_DB
+#   - REDIS_PASSWORD (peut être vide)
+# ============================================================================
+REDIS_HOST = config('REDIS_HOST')
+REDIS_PORT = config('REDIS_PORT', cast=int)
+REDIS_DB = config('REDIS_DB', cast=int)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)  # Peut être vide si pas de mot de passe
 
 # Configuration du cache Redis optimisé
 CACHES = {
@@ -307,18 +357,28 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # URLs de redirection OAuth
-LOGIN_REDIRECT_URL = 'http://localhost:3000/accueil'
-LOGOUT_REDIRECT_URL = 'http://localhost:3000/login'
+# Utilise FRONTEND_URL depuis les variables d'environnement
+LOGIN_REDIRECT_URL = config('LOGIN_REDIRECT_URL', default=f'{FRONTEND_URL}/accueil')
+LOGOUT_REDIRECT_URL = config('LOGOUT_REDIRECT_URL', default=f'{FRONTEND_URL}/login')
 
 # ============================================================================
 # Configuration LDAP pour la synchronisation de l'annuaire
 # ============================================================================
-# Ces paramètres sont utilisés par la commande sync_ldap_employees
-# Les valeurs sont définies dans le fichier .env pour la sécurité
-LDAP_SERVER = config('LDAP_SERVER', default='10.113.243.2')
+# ⚠️ LDAP est OPTIONNEL : Si LDAP_ENABLED=False ou si le serveur n'est pas accessible,
+# le système utilisera l'authentification locale (ModelBackend)
+# Variables optionnelles dans .env :
+#   - LDAP_ENABLED (True/False, par défaut True) - Active/désactive LDAP
+#   - LDAP_SERVER (adresse IP ou hostname du serveur LDAP, optionnel)
+#   - LDAP_PORT (port LDAP, généralement 389, optionnel)
+#   - LDAP_BASE_DN (base DN LDAP, optionnel)
+#   - LDAP_BIND_DN (DN pour la connexion LDAP, optionnel)
+#   - LDAP_BIND_PASSWORD (mot de passe pour la connexion LDAP, optionnel)
+# ============================================================================
+LDAP_ENABLED = config('LDAP_ENABLED', default='True', cast=bool)
+LDAP_SERVER = config('LDAP_SERVER', default='')
 LDAP_PORT = config('LDAP_PORT', default=389, cast=int)
 LDAP_BASE_DN = config('LDAP_BASE_DN', default='DC=sar,DC=sn')
-LDAP_BIND_DN = config('LDAP_BIND_DN', default='Administrateur@sar.sn')
+LDAP_BIND_DN = config('LDAP_BIND_DN', default='')
 LDAP_BIND_PASSWORD = config('LDAP_BIND_PASSWORD', default='')
 # Filtre LDAP pour les utilisateurs actifs (exclut les comptes système)
 # Modifier ce filtre dans settings.py pour personnaliser les exclusions

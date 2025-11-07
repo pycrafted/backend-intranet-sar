@@ -96,9 +96,14 @@ class ProductionDeployer:
         backup_path.mkdir(parents=True, exist_ok=True)
         
         # Sauvegarder la base de données
+        # ⚠️ Aucune valeur par défaut pour la sécurité - doit venir du .env
         db_backup_file = backup_path / 'database_backup.sql'
+        from decouple import config
+        db_host = config('POSTGRES_HOST')
+        db_user = config('POSTGRES_USER')
+        db_name = config('POSTGRES_DB')
         if self.run_command(
-            f"pg_dump -h localhost -U sar_user -d sar > {db_backup_file}",
+            f"pg_dump -h {db_host} -U {db_user} -d {db_name} > {db_backup_file}",
             "Sauvegarde base de données"
         ):
             self.log(f"Sauvegarde DB créée: {db_backup_file}")
@@ -258,7 +263,8 @@ User=www-data
 Group=www-data
 WorkingDirectory={self.project_root}
 Environment=DJANGO_SETTINGS_MODULE=master.settings_production
-ExecStart=/usr/bin/python manage.py runserver 0.0.0.0:8000
+Environment=PORT=8000
+ExecStart=/usr/bin/python manage.py runserver 0.0.0.0:${{PORT:-8000}}
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=10

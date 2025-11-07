@@ -32,7 +32,7 @@ class UserNestedSerializer(serializers.Serializer):
                 if request:
                     return request.build_absolute_uri(obj.avatar.url)
                 else:
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    base_url = settings.BASE_URL
                     return f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
             except Exception as e:
                 # Si le fichier n'existe pas physiquement, retourner None
@@ -194,7 +194,7 @@ class ConversationSerializer(serializers.ModelSerializer):
                                 if request:
                                     return request.build_absolute_uri(other.avatar.url)
                                 else:
-                                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                                    base_url = settings.BASE_URL
                                     return f"{base_url}{settings.MEDIA_URL}{other.avatar.name}"
                             except Exception as e:
                                 print(f"Erreur lors de la construction de l'URL de l'avatar: {e}")
@@ -306,7 +306,7 @@ class MessageSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.attachment.url)
             else:
-                base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                base_url = settings.BASE_URL
                 return f"{base_url}{settings.MEDIA_URL}{obj.attachment.name}"
         return None
     
@@ -409,7 +409,7 @@ class XMLSerializer:
                 if request:
                     avatar_url = request.build_absolute_uri(message.sender.avatar.url)
                 else:
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    base_url = settings.BASE_URL
                     avatar_url = f"{base_url}{settings.MEDIA_URL}{message.sender.avatar.name}"
                 sender_elem.set('avatar_url', avatar_url)
         else:
@@ -435,7 +435,7 @@ class XMLSerializer:
             if request:
                 attachment_url = request.build_absolute_uri(message.attachment.url)
             else:
-                base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                base_url = settings.BASE_URL
                 attachment_url = f"{base_url}{settings.MEDIA_URL}{message.attachment.name}"
             attachment_elem.set('url', attachment_url)
             attachment_elem.set('name', message.attachment.name)

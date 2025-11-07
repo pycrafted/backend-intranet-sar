@@ -77,7 +77,6 @@ GET /api/forum/conversations/
 **Paramètres de requête :**
 - `forum` : Filtrer par ID de forum
 - `author` : Filtrer par ID d'auteur
-- `is_resolved` : Filtrer par statut résolu (true/false)
 - `search` : Recherche dans le titre et la description
 
 **Exemple :**
@@ -105,7 +104,6 @@ GET /api/forum/conversations/?forum=1&search=télétravail
     "description": "Discussion sur les nouvelles directives...",
     "image": "/media/conversations/conv1.jpg",
     "image_url": "http://localhost:8000/media/conversations/conv1.jpg",
-    "is_resolved": false,
     "views": 456,
     "replies_count": 23,
     "last_activity": "Il y a 2 heures",

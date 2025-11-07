@@ -68,11 +68,13 @@ class MediaView(View):
         origin = request.META.get('HTTP_ORIGIN', '')
         logger.info(f"🌐 [MEDIA_VIEW] Origin reçu: {origin}")
         
-        # Accepter toutes les origines Vercel et localhost
+        # Accepter toutes les origines Vercel et celles configurées dans CORS_ALLOWED_ORIGINS
+        allowed_origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
         if origin and (
             origin.endswith('.vercel.app') or 
             origin.startswith('https://frontend-intranet') or
-            origin in ['http://localhost:3000', 'https://localhost:3000', 'http://127.0.0.1:3000']
+            origin in allowed_origins or
+            origin == settings.FRONTEND_URL
         ):
             response['Access-Control-Allow-Origin'] = origin
             logger.info(f"✅ [MEDIA_VIEW] CORS autorisé pour: {origin}")
@@ -100,11 +102,13 @@ class MediaView(View):
         response = HttpResponse()
         origin = request.META.get('HTTP_ORIGIN', '')
         
-        # Accepter toutes les origines Vercel et localhost
+        # Accepter toutes les origines Vercel et celles configurées dans CORS_ALLOWED_ORIGINS
+        allowed_origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
         if origin and (
             origin.endswith('.vercel.app') or 
             origin.startswith('https://frontend-intranet') or
-            origin in ['http://localhost:3000', 'https://localhost:3000', 'http://127.0.0.1:3000']
+            origin in allowed_origins or
+            origin == settings.FRONTEND_URL
         ):
             response['Access-Control-Allow-Origin'] = origin
             logger.info(f"✅ [MEDIA_VIEW] CORS OPTIONS autorisé pour: {origin}")

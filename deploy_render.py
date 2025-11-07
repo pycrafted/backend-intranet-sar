@@ -211,7 +211,10 @@ class RenderDeployer:
             import requests
             
             # Test de l'endpoint de santé
-            response = requests.get("http://localhost:8000/api/health/", timeout=5)
+            from decouple import config
+            # ⚠️ Aucune valeur par défaut pour la sécurité - doit venir du .env
+            backend_url = config('BASE_URL')
+            response = requests.get(f"{backend_url}/api/health/", timeout=5)
             if response.status_code == 200:
                 self.log("Endpoint de santé accessible", "SUCCESS")
             else:

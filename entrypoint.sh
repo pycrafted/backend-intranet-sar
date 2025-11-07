@@ -48,8 +48,11 @@ else:
     print('Superutilisateur existe déjà')
 "
 
+# Port depuis variable d'environnement (fallback 8000 pour développement local)
+PORT=${PORT:-8000}
+
 echo "✅ Backend Django prêt!"
-echo "🌐 Serveur démarré sur http://0.0.0.0:8000"
+echo "🌐 Serveur démarré sur http://0.0.0.0:${PORT}"
 
 # Démarrer le serveur Django
-exec python manage.py runserver 0.0.0.0:8000
+exec python manage.py runserver 0.0.0.0:${PORT}

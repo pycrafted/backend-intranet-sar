@@ -11,16 +11,11 @@ from .settings import *
 # ========================================
 
 DEBUG = False
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'backend-intranet-sar-1.onrender.com',
-    'frontend-intranet-sar.vercel.app',
-    'intranet-sar.com',
-    'www.intranet-sar.com',
-    '.onrender.com',  # Tous les sous-domaines Render
-    '.vercel.app',    # Tous les sous-domaines Vercel
-]
+# Utilise ALLOWED_HOSTS depuis les variables d'environnement
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,backend-intranet-sar-1.onrender.com,frontend-intranet-sar.vercel.app,intranet-sar.com,www.intranet-sar.com'
+).split(',')
 
 # ========================================
 # SÉCURITÉ RENFORCÉE
@@ -80,14 +75,20 @@ CSRF_COOKIE_HTTPONLY = True
 # BASE DE DONNÉES RENDER
 # ========================================
 
+# ============================================================================
+# Configuration Base de Données PostgreSQL pour Render
+# ============================================================================
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans les variables d'environnement Render
+# Aucune valeur par défaut dans le code pour éviter l'exposition de secrets
+# ============================================================================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='sar_production'),
-        'USER': config('POSTGRES_USER', default='sar_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default=''),
-        'HOST': config('POSTGRES_HOST', default='localhost'),
-        'PORT': config('POSTGRES_PORT', default='5432'),
+        'NAME': config('POSTGRES_DB'),
+        'USER': config('POSTGRES_USER'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),
+        'HOST': config('POSTGRES_HOST'),
+        'PORT': config('POSTGRES_PORT'),
         'OPTIONS': {
             'sslmode': 'require',
             'connect_timeout': 30,

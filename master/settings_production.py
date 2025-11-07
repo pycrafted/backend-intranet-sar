@@ -11,7 +11,13 @@ from .settings import *
 # ========================================
 
 DEBUG = False
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# ============================================================================
+# ALLOWED_HOSTS
+# ============================================================================
+# ⚠️ SÉCURITÉ : Doit être défini dans le fichier .env
+# Format: host1,host2,host3 (séparés par des virgules)
+# ============================================================================
+ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
 # ========================================
 # SÉCURITÉ RENFORCÉE
@@ -42,15 +48,18 @@ CSRF_COOKIE_HTTPONLY = True
 # ========================================
 # BASE DE DONNÉES PRODUCTION
 # ========================================
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans le fichier .env
+# Aucune valeur par défaut dans le code pour éviter l'exposition de secrets
+# ========================================
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='sar_production'),
-        'USER': config('POSTGRES_USER', default='sar_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default=''),
-        'HOST': config('POSTGRES_HOST', default='localhost'),
-        'PORT': config('POSTGRES_PORT', default='5432'),
+        'NAME': config('POSTGRES_DB'),
+        'USER': config('POSTGRES_USER'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),
+        'HOST': config('POSTGRES_HOST'),
+        'PORT': config('POSTGRES_PORT'),
         'OPTIONS': {
             'sslmode': 'require',
             'connect_timeout': 30,
@@ -65,10 +74,15 @@ DATABASES = {
 # CACHE REDIS PRODUCTION
 # ========================================
 
-REDIS_HOST = config('REDIS_HOST', default='localhost')
-REDIS_PORT = config('REDIS_PORT', default=6379)
-REDIS_DB = config('REDIS_DB', default=0)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)
+# ============================================================================
+# Configuration Redis pour Production
+# ============================================================================
+# ⚠️ SÉCURITÉ : Tous les paramètres DOIVENT être définis dans le fichier .env
+# ============================================================================
+REDIS_HOST = config('REDIS_HOST')
+REDIS_PORT = config('REDIS_PORT', cast=int)
+REDIS_DB = config('REDIS_DB', cast=int)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default=None)  # Peut être vide
 
 CACHES = {
     'default': {

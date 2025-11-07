@@ -19,7 +19,10 @@ class ProductionMonitor:
     """Moniteur de production pour le système RAG SAR"""
     
     def __init__(self):
-        self.backend_url = "http://localhost:8000"
+        import os
+        from decouple import config
+        # ⚠️ Aucune valeur par défaut pour la sécurité - doit venir du .env
+        self.backend_url = config('BASE_URL')
         self.monitoring_data = []
         self.alerts = []
         self.start_time = time.time()
@@ -111,29 +114,34 @@ class ProductionMonitor:
         try:
             import psycopg2
             
-            # Connexion
+            # Connexion - utilise les variables d'environnement depuis .env
+            # ⚠️ Aucune valeur par défaut pour la sécurité
+            from decouple import config
             conn = psycopg2.connect(
-                host='localhost',
-                database='sar',
-                user='sar_user',
-                password='sar123',
-                port='5432'
+                host=config('POSTGRES_HOST'),
+                database=config('POSTGRES_DB'),
+                user=config('POSTGRES_USER'),
+                password=config('POSTGRES_PASSWORD'),
+                port=config('POSTGRES_PORT')
             )
             
             with conn.cursor() as cursor:
+                # Récupérer le nom de la base depuis la connexion
+                db_name = config('POSTGRES_DB')
+                
                 # Nombre de documents
                 cursor.execute("SELECT COUNT(*) FROM rag_documentembedding")
                 doc_count = cursor.fetchone()[0]
                 self.log_metric("Database Documents", doc_count, "docs")
                 
                 # Taille de la base
-                cursor.execute("SELECT pg_database_size('sar')")
+                cursor.execute("SELECT pg_database_size(%s)", (db_name,))
                 db_size_bytes = cursor.fetchone()[0]
                 db_size_mb = db_size_bytes / (1024**2)
                 self.log_metric("Database Size", db_size_mb, "MB")
                 
                 # Connexions actives
-                cursor.execute("SELECT COUNT(*) FROM pg_stat_activity WHERE datname = 'sar'")
+                cursor.execute("SELECT COUNT(*) FROM pg_stat_activity WHERE datname = %s", (db_name,))
                 active_connections = cursor.fetchone()[0]
                 self.log_metric("Active Connections", active_connections, "conn")
                 
@@ -160,7 +168,15 @@ class ProductionMonitor:
         
         try:
             import redis
-            client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+            from decouple import config
+            # ⚠️ Aucune valeur par défaut pour la sécurité - doit venir du .env
+            client = redis.Redis(
+                host=config('REDIS_HOST'),
+                port=config('REDIS_PORT', cast=int),
+                db=config('REDIS_DB', cast=int),
+                password=config('REDIS_PASSWORD', default=None),  # Peut être vide
+                decode_responses=True
+            )
             
             # Ping
             ping_result = client.ping()

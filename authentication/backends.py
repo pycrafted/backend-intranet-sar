@@ -17,6 +17,8 @@ class LDAPBackend(BaseBackend):
     """
     Backend d'authentification LDAP personnalisé
     Authentifie les utilisateurs contre Active Directory LDAP de la SAR
+    LDAP est optionnel : si le serveur n'est pas accessible, le backend retourne None
+    et Django utilisera le ModelBackend pour l'authentification locale
     """
     
     def authenticate(self, request, username=None, password=None, **kwargs):
@@ -30,14 +32,32 @@ class LDAPBackend(BaseBackend):
             
         Returns:
             User: L'utilisateur Django authentifié, ou None si l'authentification échoue
+            None est retourné silencieusement si LDAP n'est pas disponible pour permettre
+            au ModelBackend de prendre le relais
         """
         if not username or not password:
             return None
         
+        # Vérifier si LDAP est activé (optionnel via variable d'environnement)
+        ldap_enabled = config('LDAP_ENABLED', default='True', cast=bool)
+        if not ldap_enabled:
+            logger.debug("ℹ️ [LDAP_AUTH] LDAP désactivé (LDAP_ENABLED=False), passage au backend suivant")
+            return None
+        
         # Récupérer les paramètres LDAP depuis settings
-        ldap_server = getattr(settings, 'LDAP_SERVER', config('LDAP_SERVER', default='10.113.243.2'))
-        ldap_port = getattr(settings, 'LDAP_PORT', config('LDAP_PORT', default=389, cast=int))
-        ldap_base_dn = getattr(settings, 'LDAP_BASE_DN', config('LDAP_BASE_DN', default='DC=sar,DC=sn'))
+        # Si les paramètres ne sont pas configurés, retourner None silencieusement
+        try:
+            ldap_server = getattr(settings, 'LDAP_SERVER', config('LDAP_SERVER', default=''))
+            ldap_port = getattr(settings, 'LDAP_PORT', config('LDAP_PORT', default=389, cast=int))
+            ldap_base_dn = getattr(settings, 'LDAP_BASE_DN', config('LDAP_BASE_DN', default='DC=sar,DC=sn'))
+        except Exception as config_error:
+            logger.debug(f"ℹ️ [LDAP_AUTH] Configuration LDAP manquante ou invalide: {config_error}, passage au backend suivant")
+            return None
+        
+        # Si le serveur LDAP n'est pas configuré, retourner None silencieusement
+        if not ldap_server:
+            logger.debug("ℹ️ [LDAP_AUTH] LDAP_SERVER non configuré, passage au backend suivant")
+            return None
         
         # Normaliser le username (email ou sAMAccountName)
         # Si c'est un email, extraire le sAMAccountName (partie avant @)
@@ -51,8 +71,13 @@ class LDAPBackend(BaseBackend):
         logger.info(f"🔐 [LDAP_AUTH] Tentative d'authentification pour: {sam_account_name}")
         
         try:
-            # Connexion au serveur LDAP
-            server = Server(ldap_server, port=ldap_port, get_info=ALL)
+            # Connexion au serveur LDAP avec timeout pour éviter les blocages
+            # Si le serveur n'est pas accessible, on retourne None silencieusement
+            try:
+                server = Server(ldap_server, port=ldap_port, get_info=ALL, connect_timeout=5)
+            except Exception as server_error:
+                logger.debug(f"ℹ️ [LDAP_AUTH] Serveur LDAP non accessible ({ldap_server}:{ldap_port}): {server_error}, passage au backend suivant")
+                return None
             
             # Essayer de se connecter avec les credentials de l'utilisateur
             # Format du DN: CN=Nom Complet,OU=...,DC=sar,DC=sn
@@ -61,14 +86,17 @@ class LDAPBackend(BaseBackend):
             bind_password = getattr(settings, 'LDAP_BIND_PASSWORD', config('LDAP_BIND_PASSWORD', default=''))
             
             if not bind_dn or not bind_password:
-                logger.error("❌ [LDAP_AUTH] LDAP_BIND_DN ou LDAP_BIND_PASSWORD non configuré")
+                logger.debug("ℹ️ [LDAP_AUTH] LDAP_BIND_DN ou LDAP_BIND_PASSWORD non configuré, passage au backend suivant")
                 return None
             
             # Connexion avec le compte de service pour rechercher l'utilisateur
+            # Si la connexion échoue (timeout, serveur inaccessible, etc.), retourner None silencieusement
             try:
-                conn = Connection(server, user=bind_dn, password=bind_password, auto_bind=True)
+                conn = Connection(server, user=bind_dn, password=bind_password, auto_bind=True, receive_timeout=5)
             except Exception as bind_error:
-                logger.error(f"❌ [LDAP_AUTH] Erreur connexion LDAP avec compte service: {bind_error}")
+                # Erreur de connexion (timeout, serveur inaccessible, etc.)
+                # Retourner None silencieusement pour permettre au ModelBackend de prendre le relais
+                logger.debug(f"ℹ️ [LDAP_AUTH] Connexion LDAP impossible ({ldap_server}:{ldap_port}): {bind_error}, passage au backend suivant")
                 return None
             
             # Rechercher l'utilisateur par sAMAccountName ou email
@@ -85,16 +113,25 @@ class LDAPBackend(BaseBackend):
                     attributes=[
                         'sAMAccountName', 'mail', 'givenName', 'sn', 'displayName', 'userPrincipalName', 
                         'distinguishedName', 'title', 'ipPhone', 'telephoneNumber', 'manager'
-                    ]
+                    ],
+                    time_limit=5  # Timeout de 5 secondes pour la recherche
                 )
             except Exception as search_error:
-                logger.error(f"❌ [LDAP_AUTH] Erreur recherche LDAP: {search_error}")
-                conn.unbind()
+                # Erreur de recherche LDAP - retourner None silencieusement
+                logger.debug(f"ℹ️ [LDAP_AUTH] Erreur recherche LDAP: {search_error}, passage au backend suivant")
+                try:
+                    conn.unbind()
+                except:
+                    pass
                 return None
             
             if not conn.entries:
-                logger.warning(f"❌ [LDAP_AUTH] Utilisateur {sam_account_name} non trouvé dans LDAP")
-                conn.unbind()
+                # Utilisateur non trouvé dans LDAP - retourner None pour permettre au ModelBackend de prendre le relais
+                logger.debug(f"ℹ️ [LDAP_AUTH] Utilisateur {sam_account_name} non trouvé dans LDAP, passage au backend suivant")
+                try:
+                    conn.unbind()
+                except:
+                    pass
                 return None
             
             # Récupérer l'entrée LDAP
@@ -108,8 +145,11 @@ class LDAPBackend(BaseBackend):
                 user_dn = str(ldap_entry.distinguishedName)
             
             if not user_dn:
-                logger.error(f"❌ [LDAP_AUTH] Impossible de récupérer le DN pour {sam_account_name}")
-                conn.unbind()
+                logger.debug(f"ℹ️ [LDAP_AUTH] Impossible de récupérer le DN pour {sam_account_name}, passage au backend suivant")
+                try:
+                    conn.unbind()
+                except:
+                    pass
                 return None
             
             ldap_email = str(ldap_entry.mail) if hasattr(ldap_entry, 'mail') and ldap_entry.mail else None
@@ -119,7 +159,10 @@ class LDAPBackend(BaseBackend):
             if email and ldap_email:
                 email = ldap_email
             
-            conn.unbind()
+            try:
+                conn.unbind()
+            except:
+                pass
             
             # Maintenant, essayer de s'authentifier avec les credentials de l'utilisateur
             # Essayer d'abord avec userPrincipalName (format email), puis avec le DN
@@ -129,20 +172,26 @@ class LDAPBackend(BaseBackend):
                 user_principal_name = str(ldap_entry.userPrincipalName) if hasattr(ldap_entry, 'userPrincipalName') and ldap_entry.userPrincipalName else None
                 if user_principal_name:
                     try:
-                        user_conn = Connection(server, user=user_principal_name, password=password, auto_bind=True)
+                        user_conn = Connection(server, user=user_principal_name, password=password, auto_bind=True, receive_timeout=5)
                         auth_success = True
                         logger.info(f"✅ [LDAP_AUTH] Authentification LDAP réussie avec userPrincipalName pour {ldap_sam}")
-                        user_conn.unbind()
+                        try:
+                            user_conn.unbind()
+                        except:
+                            pass
                     except Exception:
                         pass
                 
                 # Méthode 2: Si la méthode 1 échoue, essayer avec le DN
                 if not auth_success:
                     try:
-                        user_conn = Connection(server, user=user_dn, password=password, auto_bind=True)
+                        user_conn = Connection(server, user=user_dn, password=password, auto_bind=True, receive_timeout=5)
                         auth_success = True
                         logger.info(f"✅ [LDAP_AUTH] Authentification LDAP réussie avec DN pour {ldap_sam}")
-                        user_conn.unbind()
+                        try:
+                            user_conn.unbind()
+                        except:
+                            pass
                     except Exception as dn_auth_error:
                         pass
                 
@@ -150,19 +199,24 @@ class LDAPBackend(BaseBackend):
                 if not auth_success:
                     try:
                         upn_format = f"{ldap_sam}@sar.sn"
-                        user_conn = Connection(server, user=upn_format, password=password, auto_bind=True)
+                        user_conn = Connection(server, user=upn_format, password=password, auto_bind=True, receive_timeout=5)
                         auth_success = True
                         logger.info(f"✅ [LDAP_AUTH] Authentification LDAP réussie avec UPN format pour {ldap_sam}")
-                        user_conn.unbind()
+                        try:
+                            user_conn.unbind()
+                        except:
+                            pass
                     except Exception:
                         pass
                 
                 if not auth_success:
-                    logger.warning(f"❌ [LDAP_AUTH] Authentification LDAP échouée pour {ldap_sam} (toutes les méthodes ont échoué)")
+                    # Authentification LDAP échouée - retourner None pour permettre au ModelBackend de prendre le relais
+                    logger.debug(f"ℹ️ [LDAP_AUTH] Authentification LDAP échouée pour {ldap_sam}, passage au backend suivant")
                     return None
                     
             except Exception as auth_error:
-                logger.warning(f"❌ [LDAP_AUTH] Erreur lors de l'authentification LDAP pour {ldap_sam}: {auth_error}")
+                # Erreur lors de l'authentification - retourner None silencieusement
+                logger.debug(f"ℹ️ [LDAP_AUTH] Erreur lors de l'authentification LDAP pour {ldap_sam}: {auth_error}, passage au backend suivant")
                 return None
             
             # Récupérer ou créer l'utilisateur Django
@@ -171,7 +225,9 @@ class LDAPBackend(BaseBackend):
             return user
             
         except Exception as e:
-            logger.error(f"❌ [LDAP_AUTH] Erreur lors de l'authentification LDAP pour {sam_account_name}: {e}")
+            # Erreur générale LDAP (timeout, serveur inaccessible, etc.)
+            # Retourner None silencieusement pour permettre au ModelBackend de prendre le relais
+            logger.debug(f"ℹ️ [LDAP_AUTH] Erreur LDAP pour {sam_account_name}: {e}, passage au backend suivant")
             return None
     
     def extract_department_from_dn(self, distinguished_name):

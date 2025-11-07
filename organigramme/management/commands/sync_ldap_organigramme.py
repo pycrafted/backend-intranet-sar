@@ -199,8 +199,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Mode DRY-RUN activé - aucune modification ne sera effectuée"))
 
         # Configuration LDAP depuis les variables d'environnement ou settings
-        ldap_server = getattr(settings, 'LDAP_SERVER', config('LDAP_SERVER', default='10.113.243.2'))
-        ldap_port = getattr(settings, 'LDAP_PORT', config('LDAP_PORT', default=389, cast=int))
+        # ⚠️ Aucune valeur par défaut pour la sécurité - doit venir du .env
+        ldap_server = getattr(settings, 'LDAP_SERVER', config('LDAP_SERVER'))
+        ldap_port = getattr(settings, 'LDAP_PORT', config('LDAP_PORT', cast=int))
         ldap_base_dn = getattr(settings, 'LDAP_BASE_DN', config('LDAP_BASE_DN', default='DC=sar,DC=sn'))
         ldap_bind_dn = getattr(settings, 'LDAP_BIND_DN', config('LDAP_BIND_DN', default='Administrateur@sar.sn'))
         ldap_bind_password = getattr(settings, 'LDAP_BIND_PASSWORD', config('LDAP_BIND_PASSWORD', default=''))

@@ -42,18 +42,15 @@ class ConversationAdmin(admin.ModelAdmin):
     """
     Administration des conversations
     """
-    list_display = ['title', 'forum', 'author', 'replies_count', 'views_count', 'is_resolved', 'created_at']
-    list_filter = ['forum', 'is_resolved', 'created_at']
-    search_fields = ['title', 'description', 'author__email', 'author__first_name', 'author__last_name']
+    list_display = ['message_preview', 'forum', 'author', 'replies_count', 'views_count', 'created_at']
+    list_filter = ['forum', 'created_at']
+    search_fields = ['message', 'content', 'author__email', 'author__first_name', 'author__last_name']
     readonly_fields = ['replies_count', 'views_count', 'created_at', 'updated_at']
     raw_id_fields = ['author', 'forum']
     
     fieldsets = (
         ('Informations de base', {
-            'fields': ('forum', 'author', 'title', 'description', 'image')
-        }),
-        ('Statut', {
-            'fields': ('is_resolved',)
+            'fields': ('forum', 'author', 'message')
         }),
         ('Statistiques', {
             'fields': ('replies_count', 'views_count'),
@@ -62,8 +59,17 @@ class ConversationAdmin(admin.ModelAdmin):
         ('Métadonnées', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
-        }),
+        }        ),
     )
+    
+    def message_preview(self, obj):
+        """Affiche un aperçu du message"""
+        if obj.message:
+            return obj.message[:50] + "..." if len(obj.message) > 50 else obj.message
+        elif obj.content:
+            return obj.content[:50] + "..." if len(obj.content) > 50 else obj.content
+        return "Sans message"
+    message_preview.short_description = 'Message'
     
     def replies_count(self, obj):
         """Affiche le nombre de réponses"""

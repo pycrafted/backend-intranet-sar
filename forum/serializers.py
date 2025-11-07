@@ -157,12 +157,12 @@ class ForumSerializer(serializers.ModelSerializer):
                     logger.warning(f"⚠️ [FORUM_SERIALIZER] Erreur build_absolute_uri: {e}")
                     # Si échec (ex: DisallowedHost, testserver), construire manuellement
                     from django.conf import settings
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    base_url = settings.BASE_URL
                     return f"{base_url}{image_url}"
             
             # Si pas de request, construire avec les settings
             from django.conf import settings
-            base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+            base_url = settings.BASE_URL
             return f"{base_url}{image_url}"
         except Exception as e:
             logger.error(f"❌ [FORUM_SERIALIZER] Erreur dans get_image_url pour Forum {obj.id}: {e}", exc_info=True)
@@ -267,11 +267,11 @@ class CommentSerializer(serializers.ModelSerializer):
                 except Exception as e:
                     # Si échec (ex: DisallowedHost, testserver), construire manuellement
                     from django.conf import settings
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    base_url = settings.BASE_URL
                     return f"{base_url}{obj.author.avatar.url}"
             # Si pas de request, construire avec les settings
             from django.conf import settings
-            base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+            base_url = settings.BASE_URL
             return f"{base_url}{obj.author.avatar.url}"
         return None
 
@@ -305,8 +305,6 @@ class ConversationSerializer(serializers.ModelSerializer):
     views = serializers.IntegerField(source='views_count', read_only=True)
     last_activity = serializers.SerializerMethodField()
     author_avatar = serializers.SerializerMethodField()
-    image_url = serializers.SerializerMethodField()
-    # Ne pas inclure 'image' dans les fields pour éviter la sérialisation automatique par DRF
     
     class Meta:
         model = Conversation
@@ -317,11 +315,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             'author',
             'author_id',
             'author_avatar',
-            'title',
-            'description',
+            'message',
             'content',
-            'image_url',
-            'is_resolved',
             'views',
             'replies_count',
             'last_activity',
@@ -383,77 +378,42 @@ class ConversationSerializer(serializers.ModelSerializer):
                 except Exception as e:
                     # Si échec (ex: DisallowedHost, testserver), construire manuellement
                     from django.conf import settings
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    base_url = settings.BASE_URL
                     return f"{base_url}{obj.author.avatar.url}"
             # Si pas de request, construire avec les settings
             from django.conf import settings
-            base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+            base_url = settings.BASE_URL
             return f"{base_url}{obj.author.avatar.url}"
         return None
     
-    def get_image_url(self, obj):
-        """Retourne l'URL complète de l'image"""
-        if obj.image and hasattr(obj.image, 'url'):
-            request = self.context.get('request')
-            if request:
-                try:
-                    # Essayer de construire l'URL absolue
-                    return request.build_absolute_uri(obj.image.url)
-                except Exception as e:
-                    # Si échec (ex: DisallowedHost, testserver), construire manuellement
-                    from django.conf import settings
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
-                    return f"{base_url}{obj.image.url}"
-            # Si pas de request, construire avec les settings
-            from django.conf import settings
-            base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
-            return f"{base_url}{obj.image.url}"
-        return None
-
-
 class ConversationCreateSerializer(serializers.ModelSerializer):
     """
     Serializer pour la création de conversations
     Supporte deux modes :
-    - Mode simple : juste 'content' (génère automatiquement title et description)
-    - Mode complet : 'title' et 'description' (pour compatibilité)
+    - Mode simple : juste 'content' (sera copié dans message)
+    - Mode complet : 'message' directement
     """
     content = serializers.CharField(required=False, allow_blank=True, write_only=True)
     
     class Meta:
         model = Conversation
-        fields = ['forum', 'content', 'title', 'description', 'image']
+        fields = ['forum', 'content', 'message']
     
     def validate(self, attrs):
-        """Valide que soit content, soit title+description sont fournis"""
+        """Valide que soit content, soit message est fourni"""
         content = attrs.get('content', '').strip() if attrs.get('content') else ''
-        title = attrs.get('title', '').strip() if attrs.get('title') else ''
-        description = attrs.get('description', '').strip() if attrs.get('description') else ''
+        message = attrs.get('message', '').strip() if attrs.get('message') else ''
         
-        # Mode simple : content fourni
+        # Si content est fourni, il sera copié dans message par le save() du modèle
         if content:
             if len(content) < 3:
                 raise serializers.ValidationError({"content": "Le contenu doit contenir au moins 3 caractères."})
-            # Générer title et description depuis content
-            if not title:
-                if len(content) > 300:
-                    attrs['title'] = content[:297] + "..."
-                else:
-                    attrs['title'] = content
-            if not description:
-                attrs['description'] = content
-        # Mode complet : title et description fournis
-        elif title or description:
-            if not title:
-                raise serializers.ValidationError({"title": "Le titre est requis si le contenu n'est pas fourni."})
-            if len(title) < 3:
-                raise serializers.ValidationError({"title": "Le titre doit contenir au moins 3 caractères."})
-            if not description:
-                attrs['description'] = title
-            elif len(description) < 3:
-                raise serializers.ValidationError({"description": "La description doit contenir au moins 3 caractères."})
+        # Si message est fourni directement
+        elif message:
+            if len(message) < 3:
+                raise serializers.ValidationError({"message": "Le message doit contenir au moins 3 caractères."})
         else:
-            raise serializers.ValidationError("Vous devez fournir soit 'content', soit 'title' (et optionnellement 'description').")
+            raise serializers.ValidationError("Vous devez fournir soit 'content', soit 'message'.")
         
         return attrs
     
@@ -461,7 +421,7 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
         """Créer la conversation en gérant le contenu"""
         content = validated_data.pop('content', None)
         if content:
-            # Le save() du modèle générera automatiquement title et description
+            # Le save() du modèle copiera content dans message
             validated_data['content'] = content
         
         return super().create(validated_data)
@@ -469,21 +429,15 @@ class ConversationCreateSerializer(serializers.ModelSerializer):
 
 class ConversationUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer pour la mise à jour de conversations (titre, description, image, is_resolved)
+    Serializer pour la mise à jour de conversations (message)
     """
     class Meta:
         model = Conversation
-        fields = ['title', 'description', 'image', 'is_resolved']
+        fields = ['message']
     
-    def validate_title(self, value):
-        """Valide le titre de la conversation"""
-        if value and len(value.strip()) < 5:
-            raise serializers.ValidationError("Le titre doit contenir au moins 5 caractères.")
-        return value.strip() if value else value
-    
-    def validate_description(self, value):
-        """Valide la description de la conversation"""
-        if value and len(value.strip()) < 10:
-            raise serializers.ValidationError("La description doit contenir au moins 10 caractères.")
+    def validate_message(self, value):
+        """Valide le message de la conversation"""
+        if value and len(value.strip()) < 3:
+            raise serializers.ValidationError("Le message doit contenir au moins 3 caractères.")
         return value.strip() if value else value
 

@@ -110,37 +110,17 @@ class Conversation(models.Model):
         verbose_name="Auteur",
         help_text="Utilisateur ayant créé cette conversation"
     )
-    title = models.CharField(
-        max_length=300,
-        verbose_name="Titre",
-        help_text="Titre de la conversation",
-        blank=True,
-        null=True
-    )
-    description = models.TextField(
-        verbose_name="Description",
-        help_text="Contenu détaillé de la conversation",
+    message = models.TextField(
+        verbose_name="Message",
+        help_text="Message de la conversation",
         blank=True,
         null=True
     )
     content = models.TextField(
         verbose_name="Contenu",
-        help_text="Contenu de la conversation (utilisé pour créer rapidement)",
+        help_text="Contenu de la conversation (utilisé pour créer rapidement, sera copié dans message)",
         blank=True,
         null=True
-    )
-    image = models.ImageField(
-        upload_to='conversations/',
-        verbose_name="Image",
-        help_text="Image associée à la conversation",
-        blank=True,
-        null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'])]
-    )
-    is_resolved = models.BooleanField(
-        default=False,
-        verbose_name="Résolu",
-        help_text="Indique si la conversation est résolue (pour les forums de support)"
     )
     views_count = models.PositiveIntegerField(
         default=0,
@@ -153,31 +133,10 @@ class Conversation(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        """Override save pour générer automatiquement title et description depuis content si nécessaire"""
-        # Si content est fourni mais pas title/description, les générer automatiquement
-        if self.content and not self.title:
-            # Utiliser les premiers mots du contenu comme titre (max 300 caractères)
-            content_preview = self.content.strip()
-            if len(content_preview) > 300:
-                # Prendre les 297 premiers caractères + "..."
-                self.title = content_preview[:297] + "..."
-            else:
-                self.title = content_preview
-        
-        if self.content and not self.description:
-            self.description = self.content.strip()
-        
-        # Si description est fournie mais pas title, utiliser les premiers mots de description
-        if self.description and not self.title:
-            desc_preview = self.description.strip()
-            if len(desc_preview) > 300:
-                self.title = desc_preview[:297] + "..."
-            else:
-                self.title = desc_preview
-        
-        # Si title est fourni mais pas description, utiliser title comme description
-        if self.title and not self.description:
-            self.description = self.title
+        """Override save pour copier content dans message si nécessaire"""
+        # Si content est fourni mais pas message, copier content dans message
+        if self.content and not self.message:
+            self.message = self.content.strip()
         
         super().save(*args, **kwargs)
     
@@ -188,13 +147,12 @@ class Conversation(models.Model):
         indexes = [
             models.Index(fields=['forum', '-created_at']),
             models.Index(fields=['author']),
-            models.Index(fields=['is_resolved']),
             models.Index(fields=['-created_at']),
         ]
     
     def __str__(self):
-        title_display = self.title if self.title else (self.content[:50] + "..." if self.content and len(self.content) > 50 else (self.content or "Sans titre"))
-        return f"{title_display} - {self.forum.name}"
+        message_display = self.message[:50] + "..." if self.message and len(self.message) > 50 else (self.message or self.content[:50] + "..." if self.content and len(self.content) > 50 else (self.content or "Sans message"))
+        return f"{message_display} - {self.forum.name}"
     
     @property
     def replies_count(self):
