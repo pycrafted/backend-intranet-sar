@@ -57,7 +57,8 @@ class DepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
     """Liste et création des employés"""
-    queryset = Employee.objects.select_related('department').filter(is_active=True)
+    # IMPORTANT : Ne pas filtrer par is_active pour l'annuaire - afficher TOUS les employés
+    queryset = Employee.objects.select_related('department').all()
     serializer_class = EmployeeListSerializer
     permission_classes = [AllowAny]
     pagination_class = None  # Désactiver la pagination pour retourner tous les employés
@@ -207,13 +208,15 @@ def employee_search(request):
     """
     Recherche avancée d'employés avec filtres
     IMPORTANT: Retourne TOUS les résultats (pas de pagination)
+    IMPORTANT : Ne pas filtrer par is_active pour l'annuaire - afficher TOUS les employés
     """
     query = request.GET.get('q', '')
     department = request.GET.get('department', '')
     level = request.GET.get('level', '')
+    # IMPORTANT : Ne pas filtrer par is_active pour l'annuaire - afficher TOUS les employés
     queryset = Employee.objects.select_related(
         'department'
-    ).filter(is_active=True)
+    ).all()
     
     if query:
         queryset = queryset.filter(
