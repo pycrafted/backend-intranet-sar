@@ -1,0 +1,51 @@
+# Configuration Prometheus pour Intranet SAR
+# Ce fichier configure Prometheus pour collecter les métriques système Windows
+
+global:
+  # Intervalle de collecte des métriques (scrape)
+  scrape_interval: 15s
+  
+  # Intervalle d'évaluation des règles d'alertes
+  evaluation_interval: 15s
+  
+  # Labels externes ajoutés à toutes les métriques
+  external_labels:
+    monitor: 'sar-monitor'
+    environment: 'production'
+    server: 'sar-windows-server'
+
+# Règles d'alertes (optionnel - à activer plus tard si nécessaire)
+# rule_files:
+#   - "alerts.yml"
+
+# Configuration des cibles à scraper (sources de métriques)
+scrape_configs:
+  # Windows Exporter - métriques système Windows (CPU, RAM, Disque)
+  - job_name: 'windows'
+    static_configs:
+      - targets: ['sar-intranet.sar.sn:9182']
+        labels:
+          instance: 'sar-windows-server'
+          environment: 'production'
+          exporter: 'windows_exporter'
+    
+    # Métriques à collecter (toutes par défaut)
+    # Les collectors activés dans Windows Exporter:
+    # - cpu: Métriques CPU
+    # - memory: Métriques RAM
+    # - logical_disk: Métriques disque
+    # - process: Métriques par processus
+    # - net: Métriques réseau
+    # - os: Métriques système d'exploitation
+    # - cs: Métriques Computer System
+    # - system: Métriques système
+    # - textfile: Métriques depuis fichiers texte
+
+  # Prometheus lui-même (métriques internes)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['sar-intranet.sar.sn:9090']
+        labels:
+          instance: 'prometheus-server'
+          environment: 'production'
+
