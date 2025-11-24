@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department
+from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department, Project
 
 
 class SafetyDataSerializer(serializers.ModelSerializer):
@@ -253,8 +253,10 @@ class DayMenuSerializer(serializers.ModelSerializer):
     day_display = serializers.CharField(source='get_day_display', read_only=True)
     senegalese = MenuItemSerializer(read_only=True)
     european = MenuItemSerializer(read_only=True)
+    dessert = MenuItemSerializer(read_only=True, allow_null=True)
     senegalese_id = serializers.IntegerField(write_only=True)
     european_id = serializers.IntegerField(write_only=True)
+    dessert_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     
     class Meta:
         model = DayMenu
@@ -265,8 +267,10 @@ class DayMenuSerializer(serializers.ModelSerializer):
             'date',
             'senegalese',
             'european',
+            'dessert',
             'senegalese_id',
             'european_id',
+            'dessert_id',
             'is_active',
             'created_at',
             'updated_at'
@@ -296,12 +300,26 @@ class DayMenuSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Plat européen invalide.")
         return value
     
+    def validate_dessert_id(self, value):
+        if value is None:
+            return None
+        try:
+            menu_item = MenuItem.objects.get(id=value, type='dessert')
+            if not menu_item.is_available:
+                raise serializers.ValidationError("Ce dessert n'est pas disponible.")
+        except MenuItem.DoesNotExist:
+            raise serializers.ValidationError("Dessert invalide.")
+        return value
+    
     def create(self, validated_data):
         senegalese_id = validated_data.pop('senegalese_id')
         european_id = validated_data.pop('european_id')
+        dessert_id = validated_data.pop('dessert_id', None)
         
         validated_data['senegalese'] = MenuItem.objects.get(id=senegalese_id)
         validated_data['european'] = MenuItem.objects.get(id=european_id)
+        if dessert_id:
+            validated_data['dessert'] = MenuItem.objects.get(id=dessert_id)
         
         return super().create(validated_data)
     
@@ -314,6 +332,13 @@ class DayMenuSerializer(serializers.ModelSerializer):
             european_id = validated_data.pop('european_id')
             instance.european = MenuItem.objects.get(id=european_id)
         
+        if 'dessert_id' in validated_data:
+            dessert_id = validated_data.pop('dessert_id')
+            if dessert_id:
+                instance.dessert = MenuItem.objects.get(id=dessert_id)
+            else:
+                instance.dessert = None
+        
         return super().update(instance, validated_data)
 
 
@@ -323,7 +348,7 @@ class DayMenuCreateUpdateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = DayMenu
-        fields = ['day', 'date', 'senegalese', 'european', 'is_active']
+        fields = ['day', 'date', 'senegalese', 'european', 'dessert', 'is_active']
     
     def validate_date(self, value):
         # Permettre la création de menus pour TOUS les jours de la semaine courante
@@ -435,3 +460,113 @@ class EventListSerializer(serializers.ModelSerializer):
         if obj.time:
             return obj.time.strftime('%H:%M')
         return None
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour les projets stratégiques
+    Compatible avec le frontend (champs camelCase)
+    """
+    # Propriétés calculées
+    duration_days = serializers.ReadOnlyField()
+    duration_formatted = serializers.ReadOnlyField()
+    
+    # Champs pour compatibilité avec le frontend (camelCase)
+    name = serializers.CharField(source='titre', read_only=False, required=False, allow_blank=True, allow_null=True)
+    chefProjet = serializers.SerializerMethodField()
+    dateDebut = serializers.SerializerMethodField()
+    dateFin = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Project
+        fields = [
+            'id',
+            'titre',
+            'name',  # Alias pour compatibilité frontend
+            'objective',
+            'description',
+            'status',
+            'date_debut',
+            'date_fin',
+            'partners',
+            'chef_projet',
+            'image',
+            'created_at',
+            'updated_at',
+            # Propriétés calculées
+            'duration_days',
+            'duration_formatted',
+            # Champs pour compatibilité frontend
+            'chefProjet',
+            'dateDebut',
+            'dateFin',
+            'image',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'duration_days', 'duration_formatted']
+    
+    def get_chefProjet(self, obj):
+        """Retourne le chef de projet pour compatibilité frontend"""
+        return obj.chef_projet
+    
+    def get_dateDebut(self, obj):
+        """Retourne la date de début formatée pour compatibilité frontend"""
+        return obj.date_debut.isoformat() if obj.date_debut else None
+    
+    def get_dateFin(self, obj):
+        """Retourne la date de fin formatée pour compatibilité frontend"""
+        return obj.date_fin.isoformat() if obj.date_fin else None
+    
+    def get_image(self, obj):
+        """Retourne l'URL de l'image uploadée"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def to_internal_value(self, data):
+        """Convertit 'name' en 'titre' pour la compatibilité frontend"""
+        if 'name' in data and 'titre' not in data:
+            data = data.copy()
+            data['titre'] = data.pop('name')
+        return super().to_internal_value(data)
+
+
+class ProjectCreateUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la création et la mise à jour des projets
+    Tous les champs sont optionnels
+    """
+    name = serializers.CharField(source='titre', required=False, allow_blank=True, allow_null=True)
+    
+    class Meta:
+        model = Project
+        fields = [
+            'titre',
+            'name',  # Alias pour compatibilité frontend
+            'objective',
+            'description',
+            'status',
+            'date_debut',
+            'date_fin',
+            'partners',
+            'chef_projet',
+            'image',
+        ]
+    
+    def validate_status(self, value):
+        """Valide le statut si fourni"""
+        if value:
+            valid_statuses = [choice[0] for choice in Project.STATUS_CHOICES]
+            if value not in valid_statuses:
+                raise serializers.ValidationError(f"Statut invalide. Choix possibles: {', '.join(valid_statuses)}")
+        return value
+    
+    def to_internal_value(self, data):
+        """Convertit 'name' en 'titre' pour la compatibilité frontend"""
+        if 'name' in data and 'titre' not in data:
+            data = data.copy()
+            data['titre'] = data.pop('name')
+        return super().to_internal_value(data)

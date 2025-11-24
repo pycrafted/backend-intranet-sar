@@ -374,19 +374,19 @@ def week_menu(request):
         # Calculer le lundi de la semaine courante
         days_since_monday = today.weekday()
         monday = today - timedelta(days=days_since_monday)
-        friday = monday + timedelta(days=4)
+        thursday = monday + timedelta(days=3)
         
         # Récupérer les menus de la semaine (tous, pas seulement actifs)
         week_menus = DayMenu.objects.filter(
             date__gte=monday,
-            date__lte=friday
+            date__lte=thursday
         ).order_by('date')
         
         serializer = DayMenuSerializer(week_menus, many=True)
         
         response_data = {
             'week_start': monday.isoformat(),
-            'week_end': friday.isoformat(),
+            'week_end': thursday.isoformat(),
             'days': serializer.data
         }
         
@@ -457,7 +457,16 @@ def create_week_menu(request):
         created_menus = []
         
         # Créer les menus pour les jours restants de la semaine
+        # Filtrer uniquement les menus complets (avec senegalese_id et european_id)
         for menu_data in menus_data:
+            # Vérifier que le menu est complet (a au moins un plat sénégalais et européen)
+            senegalese_id = menu_data.get('senegalese_id', 0)
+            european_id = menu_data.get('european_id', 0)
+            
+            # Ignorer les menus incomplets
+            if not senegalese_id or not european_id or senegalese_id == 0 or european_id == 0:
+                continue
+            
             # Utiliser la date fournie par le frontend
             current_date = datetime.strptime(menu_data['date'], '%Y-%m-%d').date()
             
@@ -470,7 +479,7 @@ def create_week_menu(request):
             existing_menu = DayMenu.objects.filter(date=current_date).first()
             if existing_menu:
                 # Mettre à jour le menu existant
-                serializer = DayMenuSerializer(existing_menu, data=menu_data)
+                serializer = DayMenuSerializer(existing_menu, data=menu_data, context={'request': request})
                 if serializer.is_valid():
                     menu = serializer.save()
                     created_menus.append(menu)
@@ -478,7 +487,7 @@ def create_week_menu(request):
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             else:
                 # Créer un nouveau menu
-                serializer = DayMenuSerializer(data=menu_data)
+                serializer = DayMenuSerializer(data=menu_data, context={'request': request})
                 if serializer.is_valid():
                     menu = serializer.save()
                     created_menus.append(menu)
@@ -488,7 +497,7 @@ def create_week_menu(request):
         # Retourner tous les menus de la semaine (pas seulement ceux créés)
         week_menus = DayMenu.objects.filter(
             date__gte=week_start,
-            date__lte=week_start + timedelta(days=4)
+            date__lte=week_start + timedelta(days=3)
         ).order_by('date')
         
         response_serializer = DayMenuSerializer(week_menus, many=True)

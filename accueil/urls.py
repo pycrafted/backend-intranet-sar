@@ -40,4 +40,9 @@ urlpatterns = [
     path('events/next/', views.next_event, name='next-event'),
     path('events/stats/', views.event_stats, name='event-stats'),
     
+    # Endpoints pour les projets
+    path('projects/', views.ProjectListAPIView.as_view(), name='project-list'),
+    path('projects/active/', views.projects_active, name='projects-active'),
+    path('projects/<int:pk>/', views.ProjectDetailAPIView.as_view(), name='project-detail'),
+    
 ]

@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.urls import path
 from django.http import HttpResponseRedirect
 from django.utils import timezone
-from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department
+from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department, Project
 
 
 @admin.register(SafetyData)
@@ -446,6 +446,7 @@ class DayMenuAdmin(admin.ModelAdmin):
         'date',
         'senegalese_name',
         'european_name',
+        'dessert_name',
         'is_active',
         'created_at'
     ]
@@ -461,6 +462,7 @@ class DayMenuAdmin(admin.ModelAdmin):
     search_fields = [
         'senegalese__name',
         'european__name',
+        'dessert__name',
         'date'
     ]
     
@@ -476,6 +478,7 @@ class DayMenuAdmin(admin.ModelAdmin):
                 'date',
                 'senegalese',
                 'european',
+                'dessert',
                 'is_active'
             )
         }),
@@ -494,7 +497,7 @@ class DayMenuAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimiser les requêtes"""
-        return super().get_queryset(request).select_related('senegalese', 'european')
+        return super().get_queryset(request).select_related('senegalese', 'european', 'dessert')
     
     def day_display(self, obj):
         """Afficher le jour avec icône"""
@@ -503,7 +506,6 @@ class DayMenuAdmin(admin.ModelAdmin):
             'tuesday': '📅',
             'wednesday': '📅',
             'thursday': '📅',
-            'friday': '📅',
             'saturday': '📅',
             'sunday': '📅',
         }
@@ -520,6 +522,13 @@ class DayMenuAdmin(admin.ModelAdmin):
         """Afficher le nom du plat européen"""
         return f"🇪🇺 {obj.european.name}"
     european_name.short_description = 'Plat Européen'
+    
+    def dessert_name(self, obj):
+        """Afficher le nom du dessert"""
+        if obj.dessert:
+            return f"🍰 {obj.dessert.name}"
+        return "—"
+    dessert_name.short_description = 'Dessert'
     
     def mark_active(self, request, queryset):
         """Action pour marquer comme actif"""
@@ -712,5 +721,67 @@ class DepartmentAdmin(admin.ModelAdmin):
         emails = obj.get_emails_list()
         return len(emails)
     emails_count.short_description = 'Nombre d\'emails'
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    """
+    Interface d'administration pour les projets stratégiques
+    """
+    list_display = [
+        'id',
+        'titre',
+        'status',
+        'chef_projet',
+        'date_debut',
+        'date_fin',
+    ]
+    
+    list_filter = [
+        'status',
+        'created_at',
+    ]
+    
+    search_fields = [
+        'titre',
+        'objective',
+        'description',
+        'chef_projet',
+        'partners'
+    ]
+    
+    readonly_fields = [
+        'duration_days',
+        'duration_formatted'
+    ]
+    
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('titre', 'objective', 'description', 'status')
+        }),
+        ('Dates et durée', {
+            'fields': ('date_debut', 'date_fin', 'duration_days', 'duration_formatted')
+        }),
+        ('Partenaires', {
+            'fields': ('partners',)
+        }),
+        ('Responsable', {
+            'fields': ('chef_projet',)
+        }),
+        ('Image', {
+            'fields': ('image',),
+            'description': 'Vous pouvez uploader une image pour le projet'
+        }),
+    )
+    
+    def duration_days(self, obj):
+        """Affiche la durée en jours"""
+        return obj.duration_days or "N/A"
+    duration_days.short_description = 'Durée (jours)'
+    
+    def duration_formatted(self, obj):
+        """Affiche la durée formatée"""
+        return obj.duration_formatted or "N/A"
+    duration_formatted.short_description = 'Durée formatée'
 
 

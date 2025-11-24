@@ -151,19 +151,79 @@ class SafetyData(models.Model):
     
     @property
     def days_without_incident_sar(self):
-        """Calcule le nombre de jours sans accident SAR depuis la dernière date d'accident"""
+        """
+        Calcule le nombre de jours sans accident SAR depuis la dernière date d'accident.
+        Compare les dates (sans l'heure) pour que le compteur s'incrémente à minuit.
+        Utilise un calcul basé sur les jours calendaires pour garantir une incrémentation correcte à minuit.
+        """
+        # Obtenir la date d'aujourd'hui dans le fuseau horaire local (UTC par défaut)
+        now = timezone.now()
+        today = now.date()
+        
         if not self.last_incident_date_sar:
             # Si jamais d'accident, calculer depuis la création
-            return (timezone.now() - self.created_at).days
-        return (timezone.now() - self.last_incident_date_sar).days
+            if isinstance(self.created_at, datetime):
+                created_date = self.created_at.date()
+            else:
+                created_date = self.created_at if isinstance(self.created_at, date) else self.created_at.date()
+            
+            # Calculer la différence en jours calendaires
+            delta = today - created_date
+            return max(0, delta.days)
+        
+        # Extraire seulement la date (sans l'heure) pour la comparaison
+        if isinstance(self.last_incident_date_sar, datetime):
+            incident_date = self.last_incident_date_sar.date()
+        elif isinstance(self.last_incident_date_sar, date):
+            incident_date = self.last_incident_date_sar
+        else:
+            # Si c'est une chaîne ou autre format, essayer de convertir
+            incident_date = self.last_incident_date_sar
+        
+        # Calculer la différence en jours calendaires
+        # Cette méthode garantit que le compteur s'incrémente correctement à minuit
+        delta = today - incident_date
+        days = max(0, delta.days)
+        
+        return days
     
     @property
     def days_without_incident_ee(self):
-        """Calcule le nombre de jours sans accident EE depuis la dernière date d'accident"""
+        """
+        Calcule le nombre de jours sans accident EE depuis la dernière date d'accident.
+        Compare les dates (sans l'heure) pour que le compteur s'incrémente à minuit.
+        Utilise un calcul basé sur les jours calendaires pour garantir une incrémentation correcte à minuit.
+        """
+        # Obtenir la date d'aujourd'hui dans le fuseau horaire local (UTC par défaut)
+        now = timezone.now()
+        today = now.date()
+        
         if not self.last_incident_date_ee:
             # Si jamais d'accident, calculer depuis la création
-            return (timezone.now() - self.created_at).days
-        return (timezone.now() - self.last_incident_date_ee).days
+            if isinstance(self.created_at, datetime):
+                created_date = self.created_at.date()
+            else:
+                created_date = self.created_at if isinstance(self.created_at, date) else self.created_at.date()
+            
+            # Calculer la différence en jours calendaires
+            delta = today - created_date
+            return max(0, delta.days)
+        
+        # Extraire seulement la date (sans l'heure) pour la comparaison
+        if isinstance(self.last_incident_date_ee, datetime):
+            incident_date = self.last_incident_date_ee.date()
+        elif isinstance(self.last_incident_date_ee, date):
+            incident_date = self.last_incident_date_ee
+        else:
+            # Si c'est une chaîne ou autre format, essayer de convertir
+            incident_date = self.last_incident_date_ee
+        
+        # Calculer la différence en jours calendaires
+        # Cette méthode garantit que le compteur s'incrémente correctement à minuit
+        delta = today - incident_date
+        days = max(0, delta.days)
+        
+        return days
     
     @property
     def days_without_incident(self):
@@ -256,6 +316,7 @@ class MenuItem(models.Model):
     TYPE_CHOICES = [
         ('senegalese', 'Sénégalais'),
         ('european', 'Européen'),
+        ('dessert', 'Dessert'),
     ]
     
     name = models.CharField(
@@ -299,7 +360,6 @@ class DayMenu(models.Model):
         ('tuesday', 'Mardi'),
         ('wednesday', 'Mercredi'),
         ('thursday', 'Jeudi'),
-        ('friday', 'Vendredi'),
         ('saturday', 'Samedi'),
         ('sunday', 'Dimanche'),
     ]
@@ -325,6 +385,15 @@ class DayMenu(models.Model):
         related_name='european_menus',
         limit_choices_to={'type': 'european'},
         help_text="Plat européen du jour"
+    )
+    dessert = models.ForeignKey(
+        MenuItem,
+        on_delete=models.CASCADE,
+        related_name='dessert_menus',
+        limit_choices_to={'type': 'dessert'},
+        help_text="Dessert du jour",
+        null=True,
+        blank=True
     )
     is_active = models.BooleanField(
         default=True,
@@ -447,4 +516,127 @@ class Event(models.Model):
     def is_future(self):
         """Vérifie si l'événement est dans le futur"""
         return not self.is_past and not self.is_today
+
+
+class Project(models.Model):
+    """
+    Modèle pour gérer les projets stratégiques
+    Tous les champs sont optionnels pour permettre une flexibilité maximale
+    """
+    STATUS_CHOICES = [
+        ('en_cours', 'Études en cours'),
+        ('termine', 'Terminé'),
+        ('planifie', 'Planifié'),
+        ('en_projet', 'En projet'),
+    ]
+    
+    # Informations de base
+    titre = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Titre du projet"
+    )
+    objective = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Objectif du projet"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description détaillée du projet"
+    )
+    
+    # Statut et dates
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Statut actuel du projet"
+    )
+    date_debut = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Date de début du projet"
+    )
+    date_fin = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Date de fin prévue du projet"
+    )
+    
+    # Partenaires
+    partners = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Partenaires du projet"
+    )
+    
+    # Responsable
+    chef_projet = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Chef de projet"
+    )
+    
+    # Image
+    image = models.ImageField(
+        upload_to='projects/',
+        blank=True,
+        null=True,
+        help_text="Image du projet"
+    )
+    
+    # Métadonnées (cachées dans l'admin mais conservées pour l'historique)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Projet"
+        verbose_name_plural = "Projets"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return self.titre or f"Projet #{self.id}"
+    
+    @property
+    def duration_days(self):
+        """Calcule la durée du projet en jours"""
+        if not self.date_debut or not self.date_fin:
+            return None
+        delta = self.date_fin - self.date_debut
+        return delta.days
+    
+    @property
+    def duration_formatted(self):
+        """Retourne la durée formatée (ex: '2 ans et 3 mois')"""
+        if not self.date_debut or not self.date_fin:
+            return None
+        
+        delta = self.date_fin - self.date_debut
+        days = delta.days
+        
+        years = days // 365
+        months = (days % 365) // 30
+        
+        if years > 0 and months > 0:
+            return f"{years} an{'s' if years > 1 else ''} et {months} mois"
+        elif years > 0:
+            return f"{years} an{'s' if years > 1 else ''}"
+        elif months > 0:
+            return f"{months} mois"
+        else:
+            return f"{days} jour{'s' if days > 1 else ''}"
+    
+    # Propriété pour compatibilité avec l'ancien champ 'name'
+    @property
+    def name(self):
+        """Alias pour titre (compatibilité avec le frontend)"""
+        return self.titre
 
