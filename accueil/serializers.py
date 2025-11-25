@@ -249,14 +249,9 @@ class MenuItemCreateUpdateSerializer(serializers.ModelSerializer):
 class DayMenuSerializer(serializers.ModelSerializer):
     """
     Serializer pour les menus des jours
+    Les plats sont maintenant des champs texte directement dans le menu
     """
     day_display = serializers.CharField(source='get_day_display', read_only=True)
-    senegalese = MenuItemSerializer(read_only=True)
-    european = MenuItemSerializer(read_only=True)
-    dessert = MenuItemSerializer(read_only=True, allow_null=True)
-    senegalese_id = serializers.IntegerField(write_only=True)
-    european_id = serializers.IntegerField(write_only=True)
-    dessert_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     
     class Meta:
         model = DayMenu
@@ -268,9 +263,6 @@ class DayMenuSerializer(serializers.ModelSerializer):
             'senegalese',
             'european',
             'dessert',
-            'senegalese_id',
-            'european_id',
-            'dessert_id',
             'is_active',
             'created_at',
             'updated_at'
@@ -282,64 +274,20 @@ class DayMenuSerializer(serializers.ModelSerializer):
         # Inclure les jours passés, présents et futurs
         return value
     
-    def validate_senegalese_id(self, value):
-        try:
-            menu_item = MenuItem.objects.get(id=value, type='senegalese')
-            if not menu_item.is_available:
-                raise serializers.ValidationError("Ce plat sénégalais n'est pas disponible.")
-        except MenuItem.DoesNotExist:
-            raise serializers.ValidationError("Plat sénégalais invalide.")
+    def validate_senegalese(self, value):
+        if value:
+            return value.strip()
         return value
     
-    def validate_european_id(self, value):
-        try:
-            menu_item = MenuItem.objects.get(id=value, type='european')
-            if not menu_item.is_available:
-                raise serializers.ValidationError("Ce plat européen n'est pas disponible.")
-        except MenuItem.DoesNotExist:
-            raise serializers.ValidationError("Plat européen invalide.")
+    def validate_european(self, value):
+        if value:
+            return value.strip()
         return value
     
-    def validate_dessert_id(self, value):
-        if value is None:
-            return None
-        try:
-            menu_item = MenuItem.objects.get(id=value, type='dessert')
-            if not menu_item.is_available:
-                raise serializers.ValidationError("Ce dessert n'est pas disponible.")
-        except MenuItem.DoesNotExist:
-            raise serializers.ValidationError("Dessert invalide.")
+    def validate_dessert(self, value):
+        if value:
+            return value.strip()
         return value
-    
-    def create(self, validated_data):
-        senegalese_id = validated_data.pop('senegalese_id')
-        european_id = validated_data.pop('european_id')
-        dessert_id = validated_data.pop('dessert_id', None)
-        
-        validated_data['senegalese'] = MenuItem.objects.get(id=senegalese_id)
-        validated_data['european'] = MenuItem.objects.get(id=european_id)
-        if dessert_id:
-            validated_data['dessert'] = MenuItem.objects.get(id=dessert_id)
-        
-        return super().create(validated_data)
-    
-    def update(self, instance, validated_data):
-        if 'senegalese_id' in validated_data:
-            senegalese_id = validated_data.pop('senegalese_id')
-            instance.senegalese = MenuItem.objects.get(id=senegalese_id)
-        
-        if 'european_id' in validated_data:
-            european_id = validated_data.pop('european_id')
-            instance.european = MenuItem.objects.get(id=european_id)
-        
-        if 'dessert_id' in validated_data:
-            dessert_id = validated_data.pop('dessert_id')
-            if dessert_id:
-                instance.dessert = MenuItem.objects.get(id=dessert_id)
-            else:
-                instance.dessert = None
-        
-        return super().update(instance, validated_data)
 
 
 class DayMenuCreateUpdateSerializer(serializers.ModelSerializer):

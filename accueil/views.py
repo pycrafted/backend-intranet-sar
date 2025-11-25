@@ -500,14 +500,14 @@ def create_week_menu(request):
         created_menus = []
         
         # Créer les menus pour les jours restants de la semaine
-        # Filtrer uniquement les menus complets (avec senegalese_id et european_id)
+        # Filtrer uniquement les menus complets (avec senegalese et european en texte)
         for menu_data in menus_data:
             # Vérifier que le menu est complet (a au moins un plat sénégalais et européen)
-            senegalese_id = menu_data.get('senegalese_id', 0)
-            european_id = menu_data.get('european_id', 0)
+            senegalese = menu_data.get('senegalese', '').strip()
+            european = menu_data.get('european', '').strip()
             
             # Ignorer les menus incomplets
-            if not senegalese_id or not european_id or senegalese_id == 0 or european_id == 0:
+            if not senegalese or not european:
                 continue
             
             # Utiliser la date fournie par le frontend

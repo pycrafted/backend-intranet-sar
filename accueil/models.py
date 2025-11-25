@@ -354,6 +354,7 @@ class MenuItem(models.Model):
 class DayMenu(models.Model):
     """
     Modèle pour le menu d'un jour de la semaine
+    Les plats sont maintenant des champs texte directement dans le menu
     """
     DAY_CHOICES = [
         ('monday', 'Lundi'),
@@ -372,28 +373,23 @@ class DayMenu(models.Model):
     date = models.DateField(
         help_text="Date du menu"
     )
-    senegalese = models.ForeignKey(
-        MenuItem,
-        on_delete=models.CASCADE,
-        related_name='senegalese_menus',
-        limit_choices_to={'type': 'senegalese'},
-        help_text="Plat sénégalais du jour"
+    senegalese = models.CharField(
+        max_length=200,
+        help_text="Nom du plat sénégalais du jour",
+        blank=True,
+        null=True
     )
-    european = models.ForeignKey(
-        MenuItem,
-        on_delete=models.CASCADE,
-        related_name='european_menus',
-        limit_choices_to={'type': 'european'},
-        help_text="Plat européen du jour"
+    european = models.CharField(
+        max_length=200,
+        help_text="Nom du plat européen du jour",
+        blank=True,
+        null=True
     )
-    dessert = models.ForeignKey(
-        MenuItem,
-        on_delete=models.CASCADE,
-        related_name='dessert_menus',
-        limit_choices_to={'type': 'dessert'},
-        help_text="Dessert du jour",
-        null=True,
-        blank=True
+    dessert = models.CharField(
+        max_length=200,
+        help_text="Nom du dessert du jour",
+        blank=True,
+        null=True
     )
     is_active = models.BooleanField(
         default=True,
@@ -411,7 +407,9 @@ class DayMenu(models.Model):
         unique_together = ['day', 'date']
     
     def __str__(self):
-        return f"{self.get_day_display()} {self.date} - {self.senegalese.name} / {self.european.name}"
+        senegalese_name = self.senegalese or "Non renseigné"
+        european_name = self.european or "Non renseigné"
+        return f"{self.get_day_display()} {self.date} - {senegalese_name} / {european_name}"
 
 
 class Event(models.Model):

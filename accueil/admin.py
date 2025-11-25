@@ -347,92 +347,10 @@ class IdeaAdmin(admin.ModelAdmin):
     mark_implemented.short_description = "🚀 Marquer comme implémentée"
 
 
-@admin.register(MenuItem)
-class MenuItemAdmin(admin.ModelAdmin):
-    """
-    Interface d'administration pour les plats du menu
-    """
-    list_display = [
-        'id',
-        'name',
-        'type_display',
-        'is_available',
-        'created_at',
-        'updated_at'
-    ]
-    
-    list_filter = [
-        'type',
-        'is_available',
-        'created_at',
-        'updated_at'
-    ]
-    
-    search_fields = [
-        'name',
-        'description'
-    ]
-    
-    readonly_fields = [
-        'created_at',
-        'updated_at'
-    ]
-    
-    fieldsets = (
-        ('Informations du plat', {
-            'fields': (
-                'name',
-                'type',
-                'description',
-                'is_available'
-            )
-        }),
-        ('Métadonnées', {
-            'fields': (
-                'created_at',
-                'updated_at'
-            ),
-            'classes': ('collapse',)
-        })
-    )
-    
-    ordering = ['type', 'name']
-    
-    actions = ['mark_available', 'mark_unavailable']
-    
-    def get_queryset(self, request):
-        """Optimiser les requêtes"""
-        return super().get_queryset(request).select_related()
-    
-    def type_display(self, obj):
-        """Afficher le type avec icône"""
-        icons = {
-            'senegalese': '🇸🇳',
-            'european': '🇪🇺',
-        }
-        icon = icons.get(obj.type, '🍽️')
-        return f"{icon} {obj.get_type_display()}"
-    type_display.short_description = 'Type'
-    
-    def mark_available(self, request, queryset):
-        """Action pour marquer comme disponible"""
-        updated = queryset.update(is_available=True)
-        self.message_user(
-            request,
-            f"✅ {updated} plat(s) marqué(s) comme disponible(s).",
-            messages.SUCCESS
-        )
-    mark_available.short_description = "✅ Marquer comme disponible"
-    
-    def mark_unavailable(self, request, queryset):
-        """Action pour marquer comme indisponible"""
-        updated = queryset.update(is_available=False)
-        self.message_user(
-            request,
-            f"❌ {updated} plat(s) marqué(s) comme indisponible(s).",
-            messages.WARNING
-        )
-    mark_unavailable.short_description = "❌ Marquer comme indisponible"
+# MenuItem n'est plus utilisé - les plats sont maintenant des champs texte dans DayMenu
+# @admin.register(MenuItem)
+# class MenuItemAdmin(admin.ModelAdmin):
+#     ...
 
 
 @admin.register(DayMenu)
@@ -460,9 +378,9 @@ class DayMenuAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'senegalese__name',
-        'european__name',
-        'dessert__name',
+        'senegalese',
+        'european',
+        'dessert',
         'date'
     ]
     
@@ -497,7 +415,7 @@ class DayMenuAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimiser les requêtes"""
-        return super().get_queryset(request).select_related('senegalese', 'european', 'dessert')
+        return super().get_queryset(request)
     
     def day_display(self, obj):
         """Afficher le jour avec icône"""
@@ -515,18 +433,18 @@ class DayMenuAdmin(admin.ModelAdmin):
     
     def senegalese_name(self, obj):
         """Afficher le nom du plat sénégalais"""
-        return f"🇸🇳 {obj.senegalese.name}"
+        return f"🇸🇳 {obj.senegalese or 'Non renseigné'}"
     senegalese_name.short_description = 'Plat Sénégalais'
     
     def european_name(self, obj):
         """Afficher le nom du plat européen"""
-        return f"🇪🇺 {obj.european.name}"
+        return f"🇪🇺 {obj.european or 'Non renseigné'}"
     european_name.short_description = 'Plat Européen'
     
     def dessert_name(self, obj):
         """Afficher le nom du dessert"""
         if obj.dessert:
-            return f"🍰 {obj.dessert.name}"
+            return f"🍰 {obj.dessert}"
         return "—"
     dessert_name.short_description = 'Dessert'
     

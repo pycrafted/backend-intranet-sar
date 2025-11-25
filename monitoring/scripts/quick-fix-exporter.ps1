@@ -33,3 +33,4 @@ if ($service.Status -eq "Running") {
     Get-EventLog -LogName Application -Source $serviceName -Newest 1 | Format-List
 }
 
+
