@@ -61,6 +61,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # CORS
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'master.performance_middleware.PerformanceMiddleware',  # Performance logging
     'master.session_debug_middleware.SessionDebugMiddleware',  # Debug sessions
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,6 +99,10 @@ DATABASES = {
         'PASSWORD': config('POSTGRES_PASSWORD'),
         'HOST': config('POSTGRES_HOST'),
         'PORT': config('POSTGRES_PORT'),
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+        'CONN_MAX_AGE': 600,  # Réutiliser les connexions pendant 10 minutes
     }
 }
 
@@ -355,6 +360,19 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'performance': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
+
+# Activer le logging SQL en développement pour analyser les requêtes
+if DEBUG:
+    LOGGING['loggers']['django.db.backends'] = {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+        'propagate': False,
+    }
 
