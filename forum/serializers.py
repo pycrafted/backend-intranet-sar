@@ -1,443 +1,142 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Forum, Conversation, Comment, CommentLike
-import logging
+from django.conf import settings
+from .models import Forum, ForumMessage
 
 User = get_user_model()
-logger = logging.getLogger(__name__)
 
 
-class UserForumSerializer(serializers.ModelSerializer):
-    """
-    Serializer simplifié pour les informations utilisateur dans le forum
-    """
+class UserInfoSerializer(serializers.ModelSerializer):
+    """Serializer pour les informations de base d'un utilisateur"""
     full_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name', 'avatar_url']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name', 
+                  'avatar', 'avatar_url', 'position', 'department']
     
     def get_full_name(self, obj):
         """Retourne le nom complet de l'utilisateur"""
         if obj.first_name and obj.last_name:
             return f"{obj.first_name} {obj.last_name}"
-        elif obj.first_name:
-            return obj.first_name
-        elif obj.last_name:
-            return obj.last_name
-        return obj.username or obj.email
+        return obj.username
     
     def get_avatar_url(self, obj):
         """Retourne l'URL complète de l'avatar"""
-        if obj.avatar and hasattr(obj.avatar, 'url'):
+        if obj.avatar:
             request = self.context.get('request')
             if request:
-                try:
-                    # Essayer de construire l'URL absolue
-                    return request.build_absolute_uri(obj.avatar.url)
-                except Exception:
-                    # Si échec (ex: testserver), retourner l'URL relative
-                    return obj.avatar.url
-            return obj.avatar.url
+                return request.build_absolute_uri(obj.avatar.url)
+            base_url = getattr(settings, 'BASE_URL', '')
+            return f"{base_url}{settings.MEDIA_URL}{obj.avatar.name}"
         return None
+    
+    def get_department(self, obj):
+        """Retourne le nom du département"""
+        if obj.department:
+            return obj.department.name
+        return None
+
+
+class ForumMessageSerializer(serializers.ModelSerializer):
+    """Serializer pour les messages de forum"""
+    author_info = UserInfoSerializer(source='author', read_only=True)
+    
+    class Meta:
+        model = ForumMessage
+        fields = ['id', 'forum', 'author', 'author_info', 'content', 
+                  'created_at', 'updated_at', 'is_edited']
+        read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'is_edited']
+
+
+class ForumMessageCreateSerializer(serializers.ModelSerializer):
+    """Serializer pour la création de messages"""
+    
+    class Meta:
+        model = ForumMessage
+        fields = ['content']
+    
+    def validate_content(self, value):
+        """Valide que le contenu n'est pas vide"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Le contenu du message ne peut pas être vide.")
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Le message doit contenir au moins 3 caractères.")
+        return value.strip()
 
 
 class ForumSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour les forums (catégories)
-    """
-    # Utiliser source pour pointer vers les champs annotés du queryset
-    # Si les champs annotés n'existent pas, utiliser les propriétés du modèle
-    member_count = serializers.SerializerMethodField()
-    conversation_count = serializers.SerializerMethodField()
+    """Serializer pour les forums avec statistiques"""
+    created_by_info = UserInfoSerializer(source='created_by', read_only=True)
+    message_count = serializers.SerializerMethodField()
+    participant_count = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
-    # Ne pas inclure 'image' dans les fields pour éviter la sérialisation automatique par DRF
-    # qui cause des erreurs avec build_absolute_uri()
     
     class Meta:
         model = Forum
-        fields = [
-            'id',
-            'name',
-            'description',
-            'image_url',
-            'is_active',
-            'member_count',
-            'conversation_count',
-            'created_at',
-            'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_member_count(self, obj):
-        """Retourne le nombre de membres - utilise le champ annoté si disponible"""
-        try:
-            logger.debug(f"🔵 [FORUM_SERIALIZER] get_member_count appelé pour Forum {obj.id}")
-            # Vérifier si le champ annoté existe (depuis le queryset)
-            if hasattr(obj, 'annotated_member_count'):
-                count = obj.annotated_member_count
-                logger.debug(f"🔵 [FORUM_SERIALIZER]   - Utilisation champ annoté: {count}")
-                return count
-            
-            # Sinon utiliser la propriété du modèle
-            try:
-                count = obj.member_count
-                logger.debug(f"🔵 [FORUM_SERIALIZER]   - Utilisation propriété modèle: {count}")
-                return count
-            except Exception:
-                logger.debug(f"🔵 [FORUM_SERIALIZER]   - Erreur propriété, retour 0")
-                return 0
-        except Exception as e:
-            logger.error(f"❌ [FORUM_SERIALIZER] Erreur get_member_count pour Forum {obj.id}: {e}", exc_info=True)
-            return 0
-    
-    def get_conversation_count(self, obj):
-        """Retourne le nombre de conversations - utilise le champ annoté si disponible"""
-        try:
-            logger.debug(f"🔵 [FORUM_SERIALIZER] get_conversation_count appelé pour Forum {obj.id}")
-            # Vérifier si le champ annoté existe (depuis le queryset)
-            if hasattr(obj, 'annotated_conversation_count'):
-                count = obj.annotated_conversation_count
-                logger.debug(f"🔵 [FORUM_SERIALIZER]   - Utilisation champ annoté: {count}")
-                return count
-            
-            # Sinon utiliser la propriété du modèle
-            try:
-                count = obj.conversation_count
-                logger.debug(f"🔵 [FORUM_SERIALIZER]   - Utilisation propriété modèle: {count}")
-                return count
-            except Exception:
-                logger.debug(f"🔵 [FORUM_SERIALIZER]   - Erreur propriété, retour 0")
-                return 0
-        except Exception as e:
-            logger.error(f"❌ [FORUM_SERIALIZER] Erreur get_conversation_count pour Forum {obj.id}: {e}", exc_info=True)
-            return 0
-    
-    def to_representation(self, instance):
-        """Override pour la sérialisation"""
-        try:
-            logger.info(f"🔵 [FORUM_SERIALIZER] to_representation appelé pour Forum ID={instance.id}, name='{instance.name}'")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - is_active: {instance.is_active}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - has annotated_member_count: {hasattr(instance, 'annotated_member_count')}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - has annotated_conversation_count: {hasattr(instance, 'annotated_conversation_count')}")
-            
-            data = super().to_representation(instance)
-            
-            logger.info(f"🔵 [FORUM_SERIALIZER] Données sérialisées pour Forum {instance.id}:")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - id: {data.get('id')}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - name: {data.get('name')}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - is_active: {data.get('is_active')}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - member_count: {data.get('member_count')}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - conversation_count: {data.get('conversation_count')}")
-            logger.info(f"🔵 [FORUM_SERIALIZER]   - image_url: {data.get('image_url')}")
-            
-            return data
-        except Exception as e:
-            logger.error(f"❌ [FORUM_SERIALIZER] Erreur dans to_representation pour Forum {instance.id}: {e}", exc_info=True)
-            raise
+        fields = ['id', 'title', 'image', 'image_url', 'created_by', 'created_by_info',
+                  'is_active', 'created_at', 'updated_at',
+                  'message_count', 'participant_count', 'last_message']
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'image_url']
     
     def get_image_url(self, obj):
-        """Retourne l'URL complète de l'image"""
-        try:
-            if not obj.image:
-                return None
-            
-            if not hasattr(obj.image, 'url'):
-                return None
-            
-            image_url = obj.image.url
-            
+        """Retourne l'URL complète de l'image du forum"""
+        if obj.image:
             request = self.context.get('request')
             if request:
-                try:
-                    absolute_url = request.build_absolute_uri(image_url)
-                    return absolute_url
-                except Exception as e:
-                    logger.warning(f"⚠️ [FORUM_SERIALIZER] Erreur build_absolute_uri: {e}")
-                    # Si échec (ex: DisallowedHost, testserver), construire manuellement
-                    from django.conf import settings
-                    base_url = settings.BASE_URL
-                    return f"{base_url}{image_url}"
-            
-            # Si pas de request, construire avec les settings
-            from django.conf import settings
-            base_url = settings.BASE_URL
-            return f"{base_url}{image_url}"
-        except Exception as e:
-            logger.error(f"❌ [FORUM_SERIALIZER] Erreur dans get_image_url pour Forum {obj.id}: {e}", exc_info=True)
-            return None
+                return request.build_absolute_uri(obj.image.url)
+            base_url = getattr(settings, 'BASE_URL', '')
+            return f"{base_url}{settings.MEDIA_URL}{obj.image.name}"
+        return None
+    
+    def get_message_count(self, obj):
+        """Retourne le nombre de messages"""
+        return obj.get_message_count()
+    
+    def get_participant_count(self, obj):
+        """Retourne le nombre de participants"""
+        return obj.get_participant_count()
+    
+    def get_last_message(self, obj):
+        """Retourne les informations du dernier message"""
+        last_msg = obj.get_last_message()
+        if last_msg:
+            return {
+                'created_at': last_msg.created_at.isoformat(),
+                'author': last_msg.author.get_full_name() or last_msg.author.username
+            }
+        return None
 
 
-class ForumCreateUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour la création et la mise à jour de forums
-    """
+class ForumCreateSerializer(serializers.ModelSerializer):
+    """Serializer pour la création de forums"""
+    image = serializers.ImageField(required=False, allow_null=True)
+    
     class Meta:
         model = Forum
-        fields = ['name', 'description', 'image', 'is_active']
+        fields = ['title', 'image']
     
-    def validate_name(self, value):
-        """Valide le nom du forum"""
+    def validate_title(self, value):
+        """Valide le titre"""
         if not value or not value.strip():
-            raise serializers.ValidationError("Le nom du forum est obligatoire.")
+            raise serializers.ValidationError("Le titre du forum ne peut pas être vide.")
         if len(value.strip()) < 3:
-            raise serializers.ValidationError("Le nom du forum doit contenir au moins 3 caractères.")
+            raise serializers.ValidationError("Le titre doit contenir au moins 3 caractères.")
+        if len(value.strip()) > 200:
+            raise serializers.ValidationError("Le titre ne peut pas dépasser 200 caractères.")
         return value.strip()
-
-
-class CommentSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour les commentaires
-    """
-    author = UserForumSerializer(read_only=True)
-    author_id = serializers.IntegerField(write_only=True, required=False)
-    likes_count = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField()
-    timestamp = serializers.SerializerMethodField()
-    author_avatar = serializers.SerializerMethodField()
     
-    class Meta:
-        model = Comment
-        fields = [
-            'id',
-            'conversation',
-            'author',
-            'author_id',
-            'author_avatar',
-            'content',
-            'likes_count',
-            'is_liked',
-            'timestamp',
-            'created_at',
-            'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_likes_count(self, obj):
-        """Retourne le nombre de likes - utilise le champ annoté si disponible"""
-        try:
-            # Vérifier si le champ annoté existe (depuis le queryset)
-            if hasattr(obj, 'annotated_likes_count'):
-                return obj.annotated_likes_count
-            
-            # Sinon utiliser la propriété du modèle
-            try:
-                return obj.likes_count
-            except Exception:
-                return 0
-        except Exception as e:
-            logger.error(f"❌ [FORUM_SERIALIZER] Erreur get_likes_count pour Comment {obj.id}: {e}", exc_info=True)
-            return 0
-    
-    def get_is_liked(self, obj):
-        """Vérifie si l'utilisateur connecté a liké ce commentaire"""
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return CommentLike.objects.filter(comment=obj, user=request.user).exists()
-        return False
-    
-    def get_timestamp(self, obj):
-        """Retourne un timestamp formaté pour le frontend"""
-        from django.utils import timezone
-        now = timezone.now()
-        diff = now - obj.created_at
-        
-        if diff.days > 7:
-            return obj.created_at.strftime('%d/%m/%Y')
-        elif diff.days > 0:
-            return f"Il y a {diff.days} jour{'s' if diff.days > 1 else ''}"
-        elif diff.seconds >= 3600:
-            hours = diff.seconds // 3600
-            return f"Il y a {hours} heure{'s' if hours > 1 else ''}"
-        elif diff.seconds >= 60:
-            minutes = diff.seconds // 60
-            return f"Il y a {minutes} minute{'s' if minutes > 1 else ''}"
-        else:
-            return "À l'instant"
-    
-    def get_author_avatar(self, obj):
-        """Retourne l'URL de l'avatar de l'auteur"""
-        if obj.author.avatar and hasattr(obj.author.avatar, 'url'):
-            request = self.context.get('request')
-            if request:
-                try:
-                    # Essayer de construire l'URL absolue
-                    return request.build_absolute_uri(obj.author.avatar.url)
-                except Exception as e:
-                    # Si échec (ex: DisallowedHost, testserver), construire manuellement
-                    from django.conf import settings
-                    base_url = settings.BASE_URL
-                    return f"{base_url}{obj.author.avatar.url}"
-            # Si pas de request, construire avec les settings
-            from django.conf import settings
-            base_url = settings.BASE_URL
-            return f"{base_url}{obj.author.avatar.url}"
-        return None
-
-
-class CommentCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour la création de commentaires
-    """
-    class Meta:
-        model = Comment
-        fields = ['conversation', 'content']
-    
-    def validate_content(self, value):
-        """Valide le contenu du commentaire"""
-        if not value or not value.strip():
-            raise serializers.ValidationError("Le contenu du commentaire est obligatoire.")
-        if len(value.strip()) < 3:
-            raise serializers.ValidationError("Le commentaire doit contenir au moins 3 caractères.")
-        return value.strip()
-
-
-class ConversationSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour les conversations (posts)
-    """
-    author = UserForumSerializer(read_only=True)
-    author_id = serializers.IntegerField(write_only=True, required=False)
-    forum = ForumSerializer(read_only=True)
-    forum_id = serializers.IntegerField(write_only=True)
-    replies_count = serializers.SerializerMethodField()
-    views = serializers.IntegerField(source='views_count', read_only=True)
-    last_activity = serializers.SerializerMethodField()
-    author_avatar = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Conversation
-        fields = [
-            'id',
-            'forum',
-            'forum_id',
-            'author',
-            'author_id',
-            'author_avatar',
-            'message',
-            'content',
-            'views',
-            'replies_count',
-            'last_activity',
-            'created_at',
-            'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_replies_count(self, obj):
-        """Retourne le nombre de réponses - utilise le champ annoté si disponible"""
-        try:
-            # Vérifier si le champ annoté existe (depuis le queryset)
-            if hasattr(obj, 'annotated_replies_count'):
-                return obj.annotated_replies_count
-            
-            # Sinon utiliser la propriété du modèle
-            try:
-                return obj.replies_count
-            except Exception:
-                return 0
-        except Exception as e:
-            logger.error(f"❌ [FORUM_SERIALIZER] Erreur get_replies_count pour Conversation {obj.id}: {e}", exc_info=True)
-            return 0
-    
-    def get_last_activity(self, obj):
-        """Retourne la dernière activité formatée"""
-        from django.utils import timezone
-        now = timezone.now()
-        
-        # Utiliser la date du dernier commentaire si disponible, sinon la date de création
-        last_comment = obj.comments.order_by('-created_at').first()
-        if last_comment:
-            diff = now - last_comment.created_at
-        else:
-            diff = now - obj.created_at
-        
-        if diff.days > 7:
-            date_to_use = last_comment.created_at if last_comment else obj.created_at
-            return date_to_use.strftime('%d/%m/%Y')
-        elif diff.days > 0:
-            return f"Il y a {diff.days} jour{'s' if diff.days > 1 else ''}"
-        elif diff.seconds >= 3600:
-            hours = diff.seconds // 3600
-            return f"Il y a {hours} heure{'s' if hours > 1 else ''}"
-        elif diff.seconds >= 60:
-            minutes = diff.seconds // 60
-            return f"Il y a {minutes} minute{'s' if minutes > 1 else ''}"
-        else:
-            return "À l'instant"
-    
-    def get_author_avatar(self, obj):
-        """Retourne l'URL de l'avatar de l'auteur"""
-        if obj.author.avatar and hasattr(obj.author.avatar, 'url'):
-            request = self.context.get('request')
-            if request:
-                try:
-                    # Essayer de construire l'URL absolue
-                    return request.build_absolute_uri(obj.author.avatar.url)
-                except Exception as e:
-                    # Si échec (ex: DisallowedHost, testserver), construire manuellement
-                    from django.conf import settings
-                    base_url = settings.BASE_URL
-                    return f"{base_url}{obj.author.avatar.url}"
-            # Si pas de request, construire avec les settings
-            from django.conf import settings
-            base_url = settings.BASE_URL
-            return f"{base_url}{obj.author.avatar.url}"
-        return None
-    
-class ConversationCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour la création de conversations
-    Supporte deux modes :
-    - Mode simple : juste 'content' (sera copié dans message)
-    - Mode complet : 'message' directement
-    """
-    content = serializers.CharField(required=False, allow_blank=True, write_only=True)
-    
-    class Meta:
-        model = Conversation
-        fields = ['forum', 'content', 'message']
-    
-    def validate(self, attrs):
-        """Valide que soit content, soit message est fourni"""
-        content = attrs.get('content', '').strip() if attrs.get('content') else ''
-        message = attrs.get('message', '').strip() if attrs.get('message') else ''
-        
-        # Si content est fourni, il sera copié dans message par le save() du modèle
-        if content:
-            if len(content) < 3:
-                raise serializers.ValidationError({"content": "Le contenu doit contenir au moins 3 caractères."})
-        # Si message est fourni directement
-        elif message:
-            if len(message) < 3:
-                raise serializers.ValidationError({"message": "Le message doit contenir au moins 3 caractères."})
-        else:
-            raise serializers.ValidationError("Vous devez fournir soit 'content', soit 'message'.")
-        
-        return attrs
-    
-    def create(self, validated_data):
-        """Créer la conversation en gérant le contenu"""
-        content = validated_data.pop('content', None)
-        if content:
-            # Le save() du modèle copiera content dans message
-            validated_data['content'] = content
-        
-        return super().create(validated_data)
-
-
-class ConversationUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour la mise à jour de conversations (message)
-    """
-    class Meta:
-        model = Conversation
-        fields = ['message']
-    
-    def validate_message(self, value):
-        """Valide le message de la conversation"""
-        if value and len(value.strip()) < 3:
-            raise serializers.ValidationError("Le message doit contenir au moins 3 caractères.")
-        return value.strip() if value else value
+    def validate_image(self, value):
+        """Valide l'image"""
+        if value:
+            # Vérifier le type de fichier
+            if not value.content_type.startswith('image/'):
+                raise serializers.ValidationError("Le fichier doit être une image.")
+            # Vérifier la taille (max 5MB)
+            if value.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError("La taille de l'image ne doit pas dépasser 5MB.")
+        return value
 

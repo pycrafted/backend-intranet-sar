@@ -53,8 +53,8 @@ INSTALLED_APPS = [
     'documents',             
     'health',                  
     'organigramme',
-    'reseau_social',   
-    'forum',         
+    'reseau_social',
+    'forum',
 ]
 
 MIDDLEWARE = [
@@ -338,26 +338,6 @@ LOGGING = {
         'django.request': {
             'handlers': ['console'],
             'level': 'ERROR',
-            'propagate': False,
-        },
-        'forum': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'forum.views': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'forum.serializers': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'forum.models': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
             'propagate': False,
         },
         'performance': {

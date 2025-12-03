@@ -1,128 +1,52 @@
 from django.contrib import admin
-from .models import Forum, Conversation, Comment, CommentLike
+from .models import Forum, ForumMessage
 
 
 @admin.register(Forum)
 class ForumAdmin(admin.ModelAdmin):
-    """
-    Administration des forums
-    """
-    list_display = ['name', 'is_active', 'member_count', 'conversation_count', 'created_at']
+    list_display = ['title', 'created_by', 'message_count_display', 
+                    'participant_count_display', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'description']
-    readonly_fields = ['member_count', 'conversation_count', 'created_at', 'updated_at']
-    
+    search_fields = ['title', 'created_by__username', 'created_by__email']
+    readonly_fields = ['created_at', 'updated_at']
     fieldsets = (
-        ('Informations de base', {
-            'fields': ('name', 'description', 'image', 'is_active')
+        ('Informations générales', {
+            'fields': ('title', 'image', 'created_by')
         }),
-        ('Statistiques', {
-            'fields': ('member_count', 'conversation_count'),
-            'classes': ('collapse',)
+        ('Statut', {
+            'fields': ('is_active',)
         }),
-        ('Métadonnées', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+        ('Dates', {
+            'fields': ('created_at', 'updated_at')
         }),
     )
     
-    def member_count(self, obj):
-        """Affiche le nombre de membres"""
-        return obj.member_count
-    member_count.short_description = 'Membres'
+    def message_count_display(self, obj):
+        return obj.get_message_count()
+    message_count_display.short_description = 'Messages'
     
-    def conversation_count(self, obj):
-        """Affiche le nombre de conversations"""
-        return obj.conversation_count
-    conversation_count.short_description = 'Conversations'
+    def participant_count_display(self, obj):
+        return obj.get_participant_count()
+    participant_count_display.short_description = 'Participants'
 
 
-@admin.register(Conversation)
-class ConversationAdmin(admin.ModelAdmin):
-    """
-    Administration des conversations
-    """
-    list_display = ['message_preview', 'forum', 'author', 'replies_count', 'views_count', 'created_at']
-    list_filter = ['forum', 'created_at']
-    search_fields = ['message', 'content', 'author__email', 'author__first_name', 'author__last_name']
-    readonly_fields = ['replies_count', 'views_count', 'created_at', 'updated_at']
-    raw_id_fields = ['author', 'forum']
-    
+@admin.register(ForumMessage)
+class ForumMessageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'forum', 'author', 'content_preview', 'is_edited', 'created_at']
+    list_filter = ['is_edited', 'created_at', 'forum']
+    search_fields = ['content', 'author__username', 'author__email', 'forum__title']
+    readonly_fields = ['created_at', 'updated_at']
     fieldsets = (
-        ('Informations de base', {
-            'fields': ('forum', 'author', 'message')
-        }),
-        ('Statistiques', {
-            'fields': ('replies_count', 'views_count'),
-            'classes': ('collapse',)
+        ('Message', {
+            'fields': ('forum', 'author', 'content')
         }),
         ('Métadonnées', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }        ),
-    )
-    
-    def message_preview(self, obj):
-        """Affiche un aperçu du message"""
-        if obj.message:
-            return obj.message[:50] + "..." if len(obj.message) > 50 else obj.message
-        elif obj.content:
-            return obj.content[:50] + "..." if len(obj.content) > 50 else obj.content
-        return "Sans message"
-    message_preview.short_description = 'Message'
-    
-    def replies_count(self, obj):
-        """Affiche le nombre de réponses"""
-        return obj.replies_count
-    replies_count.short_description = 'Réponses'
-
-
-@admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
-    """
-    Administration des commentaires
-    """
-    list_display = ['id', 'conversation', 'author', 'content_preview', 'likes_count', 'created_at']
-    list_filter = ['created_at', 'conversation__forum']
-    search_fields = ['content', 'author__email', 'author__first_name', 'author__last_name', 'conversation__title']
-    readonly_fields = ['likes_count', 'created_at', 'updated_at']
-    raw_id_fields = ['author', 'conversation']
-    
-    fieldsets = (
-        ('Informations de base', {
-            'fields': ('conversation', 'author', 'content')
-        }),
-        ('Statistiques', {
-            'fields': ('likes_count',),
-            'classes': ('collapse',)
-        }),
-        ('Métadonnées', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+            'fields': ('is_edited', 'created_at', 'updated_at')
         }),
     )
     
     def content_preview(self, obj):
-        """Affiche un aperçu du contenu"""
         if len(obj.content) > 100:
-            return f"{obj.content[:100]}..."
+            return obj.content[:100] + '...'
         return obj.content
     content_preview.short_description = 'Contenu'
-    
-    def likes_count(self, obj):
-        """Affiche le nombre de likes"""
-        return obj.likes_count
-    likes_count.short_description = 'Likes'
-
-
-@admin.register(CommentLike)
-class CommentLikeAdmin(admin.ModelAdmin):
-    """
-    Administration des likes de commentaires
-    """
-    list_display = ['id', 'comment', 'user', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['comment__content', 'user__email', 'user__first_name', 'user__last_name']
-    readonly_fields = ['created_at']
-    raw_id_fields = ['comment', 'user']
-

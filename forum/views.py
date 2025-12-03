@@ -1,375 +1,227 @@
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q, Count, Max
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, Count, Prefetch
-from django.contrib.auth import get_user_model
-from .models import Forum, Conversation, Comment, CommentLike
-from .serializers import (
-    ForumSerializer,
-    ForumCreateUpdateSerializer,
-    ConversationSerializer,
-    ConversationCreateSerializer,
-    ConversationUpdateSerializer,
-    CommentSerializer,
-    CommentCreateSerializer,
-)
 import logging
 
-User = get_user_model()
+from .models import Forum, ForumMessage
+from .serializers import (
+    ForumSerializer, ForumCreateSerializer,
+    ForumMessageSerializer, ForumMessageCreateSerializer
+)
+
 logger = logging.getLogger(__name__)
 
 
-# ===== VUES POUR LES FORUMS =====
-
-class ForumListAPIView(generics.ListCreateAPIView):
+class ForumListAPIView(generics.ListAPIView):
     """
-    API endpoint pour lister et créer des forums
+    API endpoint pour récupérer la liste des forums avec filtrage et recherche
     """
-    queryset = Forum.objects.filter(is_active=True).annotate(
-        annotated_member_count=Count('conversations__author', distinct=True),
-        annotated_conversation_count=Count('conversations', distinct=True)
-    ).order_by('name')
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-    
-    def get_queryset(self):
-        """Override pour ajouter des logs"""
-        queryset = super().get_queryset()
-        logger.info(f"🔵 [FORUM_VIEW] get_queryset() appelé")
-        logger.info(f"🔵 [FORUM_VIEW] SQL query: {queryset.query}")
-        count = queryset.count()
-        logger.info(f"🔵 [FORUM_VIEW] Nombre de forums actifs trouvés: {count}")
-        return queryset
-    
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return ForumCreateUpdateSerializer
-        return ForumSerializer
+    serializer_class = ForumSerializer
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_context(self):
-        """Ajouter le contexte de la requête au serializer"""
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
-    
-    def list(self, request, *args, **kwargs):
-        """Override list pour gérer la sérialisation"""
-        try:
-            logger.info("=" * 80)
-            logger.info("🔵 [FORUM_VIEW] ===== DÉBUT ForumListAPIView.list =====")
-            logger.info(f"🔵 [FORUM_VIEW] Méthode HTTP: {request.method}")
-            logger.info(f"🔵 [FORUM_VIEW] URL: {request.build_absolute_uri()}")
-            logger.info(f"🔵 [FORUM_VIEW] User: {request.user} (authenticated: {request.user.is_authenticated})")
-            
-            # Récupérer le queryset de base
-            base_queryset = self.get_queryset()
-            logger.info(f"🔵 [FORUM_VIEW] Queryset de base (avant filtre): {base_queryset.query}")
-            logger.info(f"🔵 [FORUM_VIEW] Nombre de forums dans queryset de base: {base_queryset.count()}")
-            
-            # Lister tous les forums (même inactifs) pour debug
-            all_forums = Forum.objects.all()
-            logger.info(f"🔵 [FORUM_VIEW] TOTAL forums en base (tous statuts): {all_forums.count()}")
-            for forum in all_forums:
-                logger.info(f"🔵 [FORUM_VIEW]   - Forum ID={forum.id}, name='{forum.name}', is_active={forum.is_active}")
-            
-            queryset = self.filter_queryset(base_queryset)
-            logger.info(f"🔵 [FORUM_VIEW] Queryset après filtre: {queryset.query}")
-            logger.info(f"🔵 [FORUM_VIEW] Nombre de forums après filtre: {queryset.count()}")
-            
-            # Vérifier la pagination
-            page = self.paginate_queryset(queryset)
-            if page is not None:
-                logger.info(f"🔵 [FORUM_VIEW] Pagination activée, page: {page}")
-                serializer = self.get_serializer(page, many=True)
-                logger.info(f"🔵 [FORUM_VIEW] Données sérialisées (page): {len(serializer.data)} forums")
-                response = self.get_paginated_response(serializer.data)
-                logger.info(f"🔵 [FORUM_VIEW] Réponse paginée créée")
-                logger.info("=" * 80)
-                return response
-            
-            # Sérialiser sans pagination
-            logger.info(f"🔵 [FORUM_VIEW] Pas de pagination, sérialisation directe")
-            serializer = self.get_serializer(queryset, many=True)
-            logger.info(f"🔵 [FORUM_VIEW] Données sérialisées: {len(serializer.data)} forums")
-            for idx, forum_data in enumerate(serializer.data):
-                logger.info(f"🔵 [FORUM_VIEW]   Forum {idx+1}: ID={forum_data.get('id')}, name='{forum_data.get('name')}', is_active={forum_data.get('is_active')}")
-            
-            response_data = serializer.data
-            logger.info(f"🔵 [FORUM_VIEW] Réponse finale: {len(response_data)} forums")
-            logger.info("=" * 80)
-            return Response(response_data)
-        except Exception as e:
-            logger.error(f"❌ [FORUM_VIEW] Erreur dans ForumListAPIView.list: {e}", exc_info=True)
-            logger.error("=" * 80)
-            raise
-    
-    def perform_create(self, serializer):
-        """Créer un forum (seuls les admins peuvent créer)"""
-        if not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Seuls les administrateurs peuvent créer des forums.")
-        serializer.save()
-
-
-class ForumDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    API endpoint pour récupérer, mettre à jour ou supprimer un forum
-    """
-    queryset = Forum.objects.all()
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-    
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return ForumCreateUpdateSerializer
-        return ForumSerializer
-    
-    def get_serializer_context(self):
-        """Ajouter le contexte de la requête au serializer"""
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
-    
-    def perform_update(self, serializer):
-        """Mettre à jour un forum (seuls les admins peuvent modifier)"""
-        if not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Seuls les administrateurs peuvent modifier des forums.")
-        serializer.save()
-    
-    def perform_destroy(self, instance):
-        """Supprimer un forum (seuls les admins peuvent supprimer)"""
-        if not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Seuls les administrateurs peuvent supprimer des forums.")
-        # Soft delete : désactiver au lieu de supprimer
-        instance.is_active = False
-        instance.save()
-
-
-# ===== VUES POUR LES CONVERSATIONS =====
-
-class ConversationListAPIView(generics.ListCreateAPIView):
-    """
-    API endpoint pour lister et créer des conversations
-    """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-    
-    def get_serializer_context(self):
-        """Ajouter le contexte de la requête au serializer"""
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
     
     def get_queryset(self):
-        queryset = Conversation.objects.select_related('author', 'forum').prefetch_related(
-            Prefetch('comments', queryset=Comment.objects.select_related('author'))
-        ).annotate(
-            annotated_replies_count=Count('comments', distinct=True)
-        )
+        queryset = Forum.objects.filter(is_active=True)
         
-        # Filtrer par forum si spécifié
-        forum_id = self.request.query_params.get('forum', None)
-        if forum_id:
-            queryset = queryset.filter(forum_id=forum_id)
-        
-        # Filtrer par auteur si spécifié
-        author_id = self.request.query_params.get('author', None)
-        if author_id:
-            queryset = queryset.filter(author_id=author_id)
-        
-        # Recherche par message ou contenu
+        # Recherche textuelle
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(message__icontains=search) | Q(content__icontains=search)
+                Q(title__icontains=search)
             )
         
-        # Ordre : plus anciennes en premier (pour que les plus récentes soient en bas dans le frontend)
-        return queryset.order_by('created_at')
-    
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return ConversationCreateSerializer
-        return ConversationSerializer
-    
-    def perform_create(self, serializer):
-        """Créer une conversation avec l'utilisateur connecté comme auteur"""
-        serializer.save(author=self.request.user)
+        # Tri
+        sort_by = self.request.query_params.get('sort', 'recent')
+        if sort_by == 'recent':
+            queryset = queryset.order_by('-created_at')
+        elif sort_by == 'oldest':
+            queryset = queryset.order_by('created_at')
+        elif sort_by == 'popular':
+            # Trier par nombre de messages décroissant
+            queryset = queryset.annotate(
+                msg_count=Count('messages')
+            ).order_by('-msg_count', '-created_at')
+        elif sort_by == 'active':
+            # Trier par dernière activité (dernier message)
+            queryset = queryset.annotate(
+                last_msg_date=Max('messages__created_at')
+            ).order_by('-last_msg_date', '-created_at')
+        else:
+            queryset = queryset.order_by('-created_at')
+        
+        return queryset
 
 
-class ConversationDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+class ForumDetailAPIView(generics.RetrieveAPIView):
     """
-    API endpoint pour récupérer, mettre à jour ou supprimer une conversation
+    API endpoint pour récupérer les détails d'un forum
     """
-    queryset = Conversation.objects.select_related('author', 'forum').prefetch_related(
-        Prefetch('comments', queryset=Comment.objects.select_related('author'))
-    ).annotate(
-        annotated_replies_count=Count('comments', distinct=True)
-    )
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-    
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return ConversationUpdateSerializer
-        return ConversationSerializer
+    queryset = Forum.objects.filter(is_active=True)
+    serializer_class = ForumSerializer
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_context(self):
-        """Ajouter le contexte de la requête au serializer"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class ForumCreateAPIView(generics.CreateAPIView):
+    """
+    API endpoint pour créer un nouveau forum
+    """
+    serializer_class = ForumCreateSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
     
-    def retrieve(self, request, *args, **kwargs):
-        """Récupérer une conversation et incrémenter le compteur de vues"""
-        instance = self.get_object()
-        instance.increment_views()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-    
-    def perform_update(self, serializer):
-        """Mettre à jour une conversation (seul l'auteur ou un admin peut modifier)"""
-        instance = self.get_object()
-        if instance.author != self.request.user and not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Vous n'avez pas la permission de modifier cette conversation.")
-        serializer.save()
-    
-    def perform_destroy(self, instance):
-        """Supprimer une conversation (seul l'auteur ou un admin peut supprimer)"""
-        if instance.author != self.request.user and not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Vous n'avez pas la permission de supprimer cette conversation.")
-        instance.delete()
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+        logger.info(f"Forum créé: {serializer.instance.title} par {self.request.user.username}")
 
 
-# ===== VUES POUR LES COMMENTAIRES =====
-
-class CommentListCreateAPIView(generics.ListCreateAPIView):
+class ForumUpdateAPIView(generics.UpdateAPIView):
     """
-    API endpoint pour lister et créer des commentaires
+    API endpoint pour modifier un forum (seul le créateur peut modifier)
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    queryset = Forum.objects.filter(is_active=True)
+    serializer_class = ForumCreateSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # Seul le créateur peut modifier
+        return Forum.objects.filter(created_by=self.request.user, is_active=True)
     
     def get_serializer_context(self):
-        """Ajouter le contexte de la requête au serializer"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            response_serializer = ForumSerializer(instance, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForumDeleteAPIView(generics.DestroyAPIView):
+    """
+    API endpoint pour supprimer un forum (soft delete - marque is_active=False)
+    """
+    queryset = Forum.objects.filter(is_active=True)
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # Seul le créateur peut supprimer
+        return Forum.objects.filter(created_by=self.request.user, is_active=True)
+    
+    def perform_destroy(self, instance):
+        # Soft delete
+        instance.is_active = False
+        instance.save()
+        logger.info(f"Forum désactivé: {instance.title} par {self.request.user.username}")
+
+
+class ForumMessageListAPIView(generics.ListAPIView):
+    """
+    API endpoint pour récupérer les messages d'un forum
+    """
+    serializer_class = ForumMessageSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
     
     def get_queryset(self):
-        conversation_id = self.request.query_params.get('conversation', None)
-        if not conversation_id:
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("Le paramètre 'conversation' est requis.")
-        
-        queryset = Comment.objects.filter(conversation_id=conversation_id).select_related(
-            'author', 'conversation'
-        ).prefetch_related(
-            'likes__user'
-        ).annotate(
-            annotated_likes_count=Count('likes', distinct=True)
-        )
-        
-        return queryset.order_by('created_at')
-    
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return CommentCreateSerializer
-        return CommentSerializer
-    
-    def perform_create(self, serializer):
-        """Créer un commentaire avec l'utilisateur connecté comme auteur"""
-        serializer.save(author=self.request.user)
+        forum_id = self.kwargs['forum_id']
+        forum = get_object_or_404(Forum, id=forum_id, is_active=True)
+        return ForumMessage.objects.filter(forum=forum).order_by('created_at')
 
 
-class CommentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+class ForumMessageCreateAPIView(generics.CreateAPIView):
     """
-    API endpoint pour récupérer, mettre à jour ou supprimer un commentaire
+    API endpoint pour créer un message dans un forum
     """
-    queryset = Comment.objects.select_related('author', 'conversation').prefetch_related(
-        'likes__user'
-    ).annotate(
-        annotated_likes_count=Count('likes', distinct=True)
-    )
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    
-    def get_serializer_class(self):
-        return CommentSerializer
+    serializer_class = ForumMessageCreateSerializer
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_context(self):
-        """Ajouter le contexte de la requête au serializer"""
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
     
-    def perform_update(self, serializer):
-        """Mettre à jour un commentaire (seul l'auteur ou un admin peut modifier)"""
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        forum_id = self.kwargs['forum_id']
+        forum = get_object_or_404(Forum, id=forum_id, is_active=True)
+        message = serializer.save(forum=forum, author=self.request.user)
+        logger.info(f"Message créé dans le forum {forum.title} par {self.request.user.username}")
+        
+        # Retourner le message complet avec author_info
+        response_serializer = ForumMessageSerializer(message, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ForumMessageUpdateAPIView(generics.UpdateAPIView):
+    """
+    API endpoint pour modifier un message (seul l'auteur peut modifier)
+    """
+    serializer_class = ForumMessageCreateSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # Seul l'auteur peut modifier
+        return ForumMessage.objects.filter(author=self.request.user)
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+    def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.author != self.request.user and not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Vous n'avez pas la permission de modifier ce commentaire.")
-        serializer.save()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            instance.is_edited = True
+            instance.save()
+            response_serializer = ForumMessageSerializer(instance, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForumMessageDeleteAPIView(generics.DestroyAPIView):
+    """
+    API endpoint pour supprimer un message (seul l'auteur ou le créateur du forum peut supprimer)
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        # L'auteur ou le créateur du forum peuvent supprimer
+        return ForumMessage.objects.filter(
+            Q(author=self.request.user) |
+            Q(forum__created_by=self.request.user)
+        )
     
     def perform_destroy(self, instance):
-        """Supprimer un commentaire (seul l'auteur ou un admin peut supprimer)"""
-        if instance.author != self.request.user and not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Vous n'avez pas la permission de supprimer ce commentaire.")
         instance.delete()
-
-
-# ===== VUES POUR LES LIKES =====
-
-@api_view(['POST', 'DELETE'])
-@permission_classes([permissions.IsAuthenticated])
-def comment_like_toggle(request, comment_id):
-    """
-    API endpoint pour liker/unliker un commentaire
-    POST : Liker un commentaire
-    DELETE : Unliker un commentaire
-    """
-    comment = get_object_or_404(Comment, id=comment_id)
-    user = request.user
-    
-    if request.method == 'POST':
-        # Liker le commentaire
-        like, created = CommentLike.objects.get_or_create(
-            comment=comment,
-            user=user
-        )
-        
-        if created:
-            return Response({
-                'message': 'Commentaire liké avec succès',
-                'liked': True,
-                'likes_count': comment.likes.count()
-            }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({
-                'message': 'Vous avez déjà liké ce commentaire',
-                'liked': True,
-                'likes_count': comment.likes.count()
-            }, status=status.HTTP_200_OK)
-    
-    elif request.method == 'DELETE':
-        # Unliker le commentaire
-        like = CommentLike.objects.filter(comment=comment, user=user).first()
-        
-        if like:
-            like.delete()
-            return Response({
-                'message': 'Like retiré avec succès',
-                'liked': False,
-                'likes_count': comment.likes.count()
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({
-                'message': 'Vous n\'avez pas liké ce commentaire',
-                'liked': False,
-                'likes_count': comment.likes.count()
-            }, status=status.HTTP_200_OK)
+        logger.info(f"Message supprimé du forum {instance.forum.title} par {self.request.user.username}")

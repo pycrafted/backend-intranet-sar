@@ -1,247 +1,157 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.core.validators import FileExtensionValidator
-import logging
+from django.db.models import Count, Q
+import os
 
 User = get_user_model()
-logger = logging.getLogger(__name__)
+
+
+def forum_image_upload_path(instance, filename):
+    """
+    Fonction pour générer le chemin d'upload des images de forum
+    Format: forums/{year}/{month}/{filename}
+    """
+    now = timezone.now()
+    year = now.strftime('%Y')
+    month = now.strftime('%m')
+    
+    # Extraire l'extension du fichier
+    ext = filename.split('.')[-1]
+    # Générer un nom de fichier unique basé sur l'ID du forum et un timestamp
+    # Si l'instance n'a pas encore d'ID, utiliser un timestamp
+    if instance.id:
+        filename = f"forum_{instance.id}_{int(now.timestamp())}.{ext}"
+    else:
+        filename = f"forum_{int(now.timestamp())}.{ext}"
+    
+    return f'forums/{year}/{month}/{filename}'
 
 
 class Forum(models.Model):
     """
-    Modèle pour représenter une catégorie de forum (ex: "Annonces Générales", "Support Technique")
+    Modèle pour représenter un forum de discussion
     """
-    name = models.CharField(
+    title = models.CharField(
         max_length=200,
-        verbose_name="Nom du forum",
-        help_text="Nom de la catégorie de forum"
+        verbose_name="Titre",
+        help_text="Titre du forum"
     )
-    description = models.TextField(
-        verbose_name="Description",
-        help_text="Description de la catégorie de forum",
-        blank=True
-    )
+    
     image = models.ImageField(
-        upload_to='forums/',
-        verbose_name="Image",
-        help_text="Image représentative du forum",
+        upload_to=forum_image_upload_path,
         blank=True,
         null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'])]
+        verbose_name="Image du forum",
+        help_text="Image d'identité du forum affichée en haut"
     )
+    
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='created_forums',
+        verbose_name="Créé par",
+        help_text="Utilisateur qui a créé le forum"
+    )
+    
     is_active = models.BooleanField(
         default=True,
         verbose_name="Actif",
-        help_text="Indique si le forum est actif et visible"
+        help_text="Indique si le forum est actif"
     )
     
-    # Métadonnées
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de création"
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Date de modification"
+    )
     
     class Meta:
         verbose_name = "Forum"
         verbose_name_plural = "Forums"
-        ordering = ['name']
+        ordering = ['-created_at']
         indexes = [
+            models.Index(fields=['-created_at']),
             models.Index(fields=['is_active']),
-            models.Index(fields=['created_at']),
         ]
     
     def __str__(self):
-        return self.name
+        return self.title
     
-    @property
-    def member_count(self):
-        """Retourne le nombre de membres ayant participé au forum"""
-        try:
-            # Vérifier si le champ annoté existe (depuis un queryset annoté)
-            # Les champs annotés sont stockés comme attributs
-            if hasattr(self, 'annotated_member_count'):
-                # C'est un champ annoté, retourner directement la valeur
-                count = self.annotated_member_count
-                logger.debug(f"📊 [FORUM_MODEL] member_count (annoté) pour Forum {self.id}: {count}")
-                return count
-            
-            # Sinon, calculer via la propriété
-            count = Conversation.objects.filter(forum=self).values('author').distinct().count()
-            logger.debug(f"📊 [FORUM_MODEL] member_count (calculé) pour Forum {self.id}: {count}")
-            return count
-        except Exception as e:
-            logger.error(f"❌ [FORUM_MODEL] Erreur member_count pour Forum {self.id}: {e}", exc_info=True)
-            return 0
+    def get_message_count(self):
+        """Retourne le nombre total de messages dans ce forum"""
+        return self.messages.count()
     
-    @property
-    def conversation_count(self):
-        """Retourne le nombre de conversations dans le forum"""
-        try:
-            # Vérifier si le champ annoté existe (depuis un queryset annoté)
-            if hasattr(self, 'annotated_conversation_count'):
-                # C'est un champ annoté, retourner directement la valeur
-                count = self.annotated_conversation_count
-                logger.debug(f"📊 [FORUM_MODEL] conversation_count (annoté) pour Forum {self.id}: {count}")
-                return count
-            
-            # Sinon, calculer via la propriété
-            count = self.conversations.count()
-            logger.debug(f"📊 [FORUM_MODEL] conversation_count (calculé) pour Forum {self.id}: {count}")
-            return count
-        except Exception as e:
-            logger.error(f"❌ [FORUM_MODEL] Erreur conversation_count pour Forum {self.id}: {e}", exc_info=True)
-            return 0
+    def get_participant_count(self):
+        """Retourne le nombre de participants uniques dans ce forum"""
+        return self.messages.values('author').distinct().count()
+    
+    def get_last_message(self):
+        """Retourne le dernier message posté dans ce forum"""
+        return self.messages.order_by('-created_at').first()
 
 
-class Conversation(models.Model):
+class ForumMessage(models.Model):
     """
-    Modèle pour représenter une conversation (post) dans un forum
+    Modèle pour représenter un message dans un forum
     """
     forum = models.ForeignKey(
         Forum,
         on_delete=models.CASCADE,
-        related_name='conversations',
+        related_name='messages',
         verbose_name="Forum",
-        help_text="Forum auquel appartient cette conversation"
+        help_text="Forum auquel appartient ce message"
     )
+    
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='forum_conversations',
+        related_name='forum_messages',
         verbose_name="Auteur",
-        help_text="Utilisateur ayant créé cette conversation"
+        help_text="Auteur du message"
     )
-    message = models.TextField(
-        verbose_name="Message",
-        help_text="Message de la conversation",
-        blank=True,
-        null=True
-    )
+    
     content = models.TextField(
         verbose_name="Contenu",
-        help_text="Contenu de la conversation (utilisé pour créer rapidement, sera copié dans message)",
-        blank=True,
-        null=True
-    )
-    views_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name="Nombre de vues",
-        help_text="Nombre de fois que la conversation a été consultée"
+        help_text="Contenu du message"
     )
     
-    # Métadonnées
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    is_edited = models.BooleanField(
+        default=False,
+        verbose_name="Modifié",
+        help_text="Indique si le message a été modifié"
+    )
     
-    def save(self, *args, **kwargs):
-        """Override save pour copier content dans message si nécessaire"""
-        # Si content est fourni mais pas message, copier content dans message
-        if self.content and not self.message:
-            self.message = self.content.strip()
-        
-        super().save(*args, **kwargs)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de création"
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Date de modification"
+    )
     
     class Meta:
-        verbose_name = "Conversation"
-        verbose_name_plural = "Conversations"
-        ordering = ['-created_at']
+        verbose_name = "Message de forum"
+        verbose_name_plural = "Messages de forum"
+        ordering = ['created_at']
         indexes = [
             models.Index(fields=['forum', '-created_at']),
             models.Index(fields=['author']),
-            models.Index(fields=['-created_at']),
         ]
     
     def __str__(self):
-        message_display = self.message[:50] + "..." if self.message and len(self.message) > 50 else (self.message or self.content[:50] + "..." if self.content and len(self.content) > 50 else (self.content or "Sans message"))
-        return f"{message_display} - {self.forum.name}"
+        return f"Message #{self.id} - {self.forum.title} - {self.author.username}"
     
-    @property
-    def replies_count(self):
-        """Retourne le nombre de commentaires (réponses) dans la conversation"""
-        return self.comments.count()
+    def can_edit(self, user):
+        """Vérifie si l'utilisateur peut modifier ce message"""
+        return self.author == user
     
-    def increment_views(self):
-        """Incrémente le compteur de vues"""
-        self.views_count += 1
-        self.save(update_fields=['views_count'])
-
-
-class Comment(models.Model):
-    """
-    Modèle pour représenter un commentaire (réponse) sur une conversation
-    """
-    conversation = models.ForeignKey(
-        Conversation,
-        on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name="Conversation",
-        help_text="Conversation à laquelle appartient ce commentaire"
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='forum_comments',
-        verbose_name="Auteur",
-        help_text="Utilisateur ayant créé ce commentaire"
-    )
-    content = models.TextField(
-        verbose_name="Contenu",
-        help_text="Contenu du commentaire"
-    )
-    
-    # Métadonnées
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = "Commentaire"
-        verbose_name_plural = "Commentaires"
-        ordering = ['created_at']
-        indexes = [
-            models.Index(fields=['conversation', 'created_at']),
-            models.Index(fields=['author']),
-            models.Index(fields=['created_at']),
-        ]
-    
-    def __str__(self):
-        return f"Commentaire de {self.author.get_full_name()} sur {self.conversation.title[:50]}"
-    
-    @property
-    def likes_count(self):
-        """Retourne le nombre de likes sur ce commentaire"""
-        return self.likes.count()
-
-
-class CommentLike(models.Model):
-    """
-    Modèle pour représenter un like sur un commentaire
-    Permet de gérer les likes/unlikes des utilisateurs
-    """
-    comment = models.ForeignKey(
-        Comment,
-        on_delete=models.CASCADE,
-        related_name='likes',
-        verbose_name="Commentaire",
-        help_text="Commentaire liké"
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='forum_comment_likes',
-        verbose_name="Utilisateur",
-        help_text="Utilisateur ayant liké le commentaire"
-    )
-    
-    # Métadonnées
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        verbose_name = "Like de commentaire"
-        verbose_name_plural = "Likes de commentaires"
-        unique_together = ['comment', 'user']  # Un utilisateur ne peut liker qu'une fois
-        indexes = [
-            models.Index(fields=['comment']),
-            models.Index(fields=['user']),
-        ]
-    
-    def __str__(self):
-        return f"{self.user.get_full_name()} aime le commentaire #{self.comment.id}"
+    def can_delete(self, user):
+        """Vérifie si l'utilisateur peut supprimer ce message"""
+        return self.author == user or self.forum.created_by == user
