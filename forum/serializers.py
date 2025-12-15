@@ -43,28 +43,76 @@ class UserInfoSerializer(serializers.ModelSerializer):
 class ForumMessageSerializer(serializers.ModelSerializer):
     """Serializer pour les messages de forum"""
     author_info = UserInfoSerializer(source='author', read_only=True)
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = ForumMessage
-        fields = ['id', 'forum', 'author', 'author_info', 'content', 
+        fields = ['id', 'forum', 'author', 'author_info', 'content', 'image', 'image_url',
                   'created_at', 'updated_at', 'is_edited']
-        read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'is_edited']
+        read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'is_edited', 'image_url']
+    
+    def get_image_url(self, obj):
+        """Retourne l'URL complète de l'image du message"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            base_url = getattr(settings, 'BASE_URL', '')
+            return f"{base_url}{settings.MEDIA_URL}{obj.image.name}"
+        return None
 
 
 class ForumMessageCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création de messages"""
+    content = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    image = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = ForumMessage
-        fields = ['content']
+        fields = ['content', 'image']
+    
+    def validate(self, attrs):
+        """Valide que soit le contenu soit l'image est fourni"""
+        content = attrs.get('content')
+        # S'assurer que content est une chaîne (peut être None depuis FormData)
+        if content is None:
+            content = ''
+        else:
+            content = str(content) if content else ''
+        
+        image = attrs.get('image')
+        
+        # Si ni contenu ni image, erreur
+        content_stripped = content.strip() if content else ''
+        if not content_stripped and not image:
+            raise serializers.ValidationError({
+                'content': 'Le contenu du message ou une image doit être fourni.'
+            })
+        
+        # S'assurer que content est toujours une chaîne dans attrs (même vide)
+        attrs['content'] = content
+        
+        return attrs
     
     def validate_content(self, value):
-        """Valide que le contenu n'est pas vide"""
-        if not value or not value.strip():
-            raise serializers.ValidationError("Le contenu du message ne peut pas être vide.")
-        if len(value.strip()) < 3:
-            raise serializers.ValidationError("Le message doit contenir au moins 3 caractères.")
-        return value.strip()
+        """Valide le contenu (peut être vide si une image est fournie)"""
+        # La validation complète est faite dans validate()
+        # Accepter les messages même s'ils ne contiennent qu'un seul emoji
+        # Convertir None en chaîne vide
+        if value is None:
+            return ''
+        return value  # Retourner la valeur originale pour préserver les emojis
+    
+    def validate_image(self, value):
+        """Valide l'image"""
+        if value:
+            # Vérifier le type de fichier
+            if not value.content_type.startswith('image/'):
+                raise serializers.ValidationError("Le fichier doit être une image.")
+            # Vérifier la taille (max 5MB)
+            if value.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError("La taille de l'image ne doit pas dépasser 5MB.")
+        return value
 
 
 class ForumSerializer(serializers.ModelSerializer):

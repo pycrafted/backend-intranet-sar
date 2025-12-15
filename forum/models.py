@@ -28,6 +28,26 @@ def forum_image_upload_path(instance, filename):
     return f'forums/{year}/{month}/{filename}'
 
 
+def forum_message_image_upload_path(instance, filename):
+    """
+    Fonction pour générer le chemin d'upload des images de messages de forum
+    Format: forum_messages/{year}/{month}/{filename}
+    """
+    now = timezone.now()
+    year = now.strftime('%Y')
+    month = now.strftime('%m')
+    
+    # Extraire l'extension du fichier
+    ext = filename.split('.')[-1]
+    # Générer un nom de fichier unique basé sur l'ID du message et un timestamp
+    if instance.id:
+        filename = f"message_{instance.id}_{int(now.timestamp())}.{ext}"
+    else:
+        filename = f"message_{int(now.timestamp())}.{ext}"
+    
+    return f'forum_messages/{year}/{month}/{filename}'
+
+
 class Forum(models.Model):
     """
     Modèle pour représenter un forum de discussion
@@ -116,8 +136,17 @@ class ForumMessage(models.Model):
     )
     
     content = models.TextField(
+        blank=True,
         verbose_name="Contenu",
         help_text="Contenu du message"
+    )
+    
+    image = models.ImageField(
+        upload_to=forum_message_image_upload_path,
+        blank=True,
+        null=True,
+        verbose_name="Image du message",
+        help_text="Image attachée au message"
     )
     
     is_edited = models.BooleanField(

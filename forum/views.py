@@ -167,7 +167,14 @@ class ForumMessageCreateAPIView(generics.CreateAPIView):
         return context
     
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        # S'assurer que 'content' est toujours présent dans les données, même vide
+        data = request.data.copy()
+        if 'content' not in data:
+            data['content'] = ''
+        elif data.get('content') is None:
+            data['content'] = ''
+        
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         
         forum_id = self.kwargs['forum_id']
