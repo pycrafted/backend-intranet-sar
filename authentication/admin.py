@@ -39,11 +39,13 @@ class UserAdmin(BaseUserAdmin):
     
     def get_readonly_fields(self, request, obj=None):
         """
-        Rendre is_active en lecture seule (il sera toujours True)
+        Rendre is_active, is_staff et is_superuser en lecture seule (ils sont toujours True)
         """
         readonly = list(super().get_readonly_fields(request, obj))
         if obj:  # Si on modifie un utilisateur existant
-            readonly.append('is_active')
+            readonly.extend(['is_active', 'is_staff', 'is_superuser'])
+        else:  # Si on crée un nouvel utilisateur
+            readonly.extend(['is_staff', 'is_superuser'])
         return readonly
     
     def get_fieldsets(self, request, obj=None):

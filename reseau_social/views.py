@@ -204,18 +204,32 @@ class MessageListCreateView(generics.ListCreateAPIView):
         conversation_id = self.kwargs['conversation_id']
         user = self.request.user
         
-        # Vérifier que l'utilisateur est participant
-        if not Participant.objects.filter(
-            conversation_id=conversation_id,
-            user=user,
-            is_active=True
-        ).exists():
+        # Vérifier que l'utilisateur est participant (actif ou inactif)
+        try:
+            participant = Participant.objects.get(
+                conversation_id=conversation_id,
+                user=user
+            )
+        except Participant.DoesNotExist:
             return Message.objects.none()
         
-        # Retourner tous les messages, y compris les supprimés (pour afficher "Message supprimé")
-        return Message.objects.filter(
+        # Si le participant n'est pas actif, ne pas retourner de messages
+        # (mais normalement, il devrait être réactivé automatiquement quand un message est envoyé)
+        if not participant.is_active:
+            return Message.objects.none()
+        
+        # Retourner les messages de la conversation
+        queryset = Message.objects.filter(
             conversation_id=conversation_id
-        ).select_related('sender', 'reply_to', 'conversation').order_by('created_at')
+        ).select_related('sender', 'reply_to', 'conversation')
+        
+        # Si le participant a un left_at (a supprimé puis été réactivé),
+        # ne montrer que les messages créés APRÈS left_at (les nouveaux messages)
+        if participant.left_at:
+            queryset = queryset.filter(created_at__gt=participant.left_at)
+        # Sinon, montrer tous les messages (utilisateur n'a jamais supprimé)
+        
+        return queryset.order_by('created_at')
     
     def list(self, request, *args, **kwargs):
         """Liste les messages avec support XML"""
@@ -255,13 +269,17 @@ class MessageListCreateView(generics.ListCreateAPIView):
         format_type = request.GET.get('format', 'json').lower()
         conversation_id = self.kwargs['conversation_id']
         
-        # Vérifier que l'utilisateur est participant
+        # Vérifier que l'utilisateur est participant (actif ou inactif)
         try:
-            Participant.objects.get(
+            participant = Participant.objects.get(
                 conversation_id=conversation_id,
-                user=request.user,
-                is_active=True
+                user=request.user
             )
+            # Si le participant est inactif, le réactiver automatiquement
+            if not participant.is_active:
+                participant.is_active = True
+                # Ne pas réinitialiser left_at pour garder l'historique de suppression
+                participant.save(update_fields=['is_active'])
         except Participant.DoesNotExist:
             return Response(
                 {'error': 'Vous n\'êtes pas participant de cette conversation'},
@@ -311,10 +329,29 @@ class MessageListCreateView(generics.ListCreateAPIView):
         if serializer.is_valid():
             message = serializer.save()
             
-            # Mettre à jour les compteurs de messages non lus pour les autres participants
+            # Réactiver automatiquement les participants inactifs (qui ont supprimé la conversation)
+            # et mettre à jour les compteurs de messages non lus
             conversation = message.conversation
+            
+            # Récupérer les IDs des participants inactifs avant réactivation
+            inactive_participant_ids = list(
+                conversation.conversation_participants.exclude(
+                    user=request.user
+                ).filter(is_active=False).values_list('id', flat=True)
+            )
+            
+            # Réactiver les participants inactifs (garder left_at pour filtrer les anciens messages)
+            if inactive_participant_ids:
+                Participant.objects.filter(id__in=inactive_participant_ids).update(
+                    is_active=True,
+                    unread_count=F('unread_count') + 1
+                )
+            
+            # Mettre à jour les compteurs pour les participants actifs (qui n'étaient pas inactifs)
             conversation.conversation_participants.exclude(
                 user=request.user
+            ).filter(is_active=True).exclude(
+                id__in=inactive_participant_ids
             ).update(unread_count=F('unread_count') + 1)
             
             if format_type == 'xml':
@@ -444,8 +481,18 @@ class MarkMessagesReadView(APIView):
             for message in messages:
                 MessageRead.objects.get_or_create(message=message, user=request.user)
         
-        # Mettre à jour le compteur de messages non lus
-        participant.unread_count = 0
+        # Recalculer le compteur de messages non lus en comptant réellement les messages non lus
+        # au lieu de simplement mettre à 0, pour éviter les désynchronisations
+        unread_count = Message.objects.filter(
+            conversation_id=conversation_id,
+            is_deleted=False
+        ).exclude(
+            sender=request.user  # Exclure les messages envoyés par l'utilisateur
+        ).exclude(
+            read_by_users__user=request.user  # Exclure les messages déjà lus
+        ).count()
+        
+        participant.unread_count = unread_count
         participant.last_read_at = timezone.now()
         participant.save(update_fields=['unread_count', 'last_read_at'])
         
@@ -536,17 +583,38 @@ def create_conversation_with_user(request):
         )
     
     # Vérifier si une conversation directe existe déjà entre ces deux utilisateurs
+    # (même si l'un des participants est inactif - pour réactiver au lieu de créer une nouvelle)
     existing_conversation = Conversation.objects.filter(
         type='direct',
-        conversation_participants__user=request.user,
-        conversation_participants__is_active=True
+        conversation_participants__user=request.user
     ).filter(
-        conversation_participants__user=target_user,
-        conversation_participants__is_active=True
+        conversation_participants__user=target_user
     ).distinct().first()
     
     if existing_conversation:
-        # Retourner la conversation existante
+        # Réactiver les participants inactifs s'ils existent
+        user_participant = Participant.objects.filter(
+            conversation=existing_conversation,
+            user=request.user
+        ).first()
+        target_participant = Participant.objects.filter(
+            conversation=existing_conversation,
+            user=target_user
+        ).first()
+        
+        # Réactiver le participant de l'utilisateur actuel s'il est inactif
+        if user_participant and not user_participant.is_active:
+            user_participant.is_active = True
+            # Ne pas réinitialiser left_at pour garder l'historique de suppression
+            user_participant.save(update_fields=['is_active'])
+        
+        # Réactiver le participant de l'utilisateur cible s'il est inactif
+        if target_participant and not target_participant.is_active:
+            target_participant.is_active = True
+            # Ne pas réinitialiser left_at pour garder l'historique de suppression
+            target_participant.save(update_fields=['is_active'])
+        
+        # Retourner la conversation existante (réactivée si nécessaire)
         serializer = ConversationSerializer(existing_conversation, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     

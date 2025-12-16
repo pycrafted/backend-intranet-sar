@@ -295,4 +295,38 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f"Type de fichier non autorisé. Extensions acceptées: {', '.join(allowed_extensions)}"
             )
+        
+        # Tronquer le nom du fichier si trop long (max 100 caractères avec extension)
+        max_filename_length = 100
+        if len(value.name) > max_filename_length:
+            import os
+            name, ext = os.path.splitext(value.name)
+            # Tronquer le nom en gardant l'extension
+            max_name_length = max_filename_length - len(ext)
+            if max_name_length > 0:
+                truncated_name = name[:max_name_length]
+                new_filename = truncated_name + ext
+                # Modifier le nom du fichier directement si possible
+                if hasattr(value, 'name'):
+                    value.name = new_filename
+                # Sinon, créer un nouveau fichier uploadé
+                else:
+                    from django.core.files.uploadedfile import InMemoryUploadedFile
+                    from io import BytesIO
+                    
+                    # Lire le contenu du fichier
+                    file_content = value.read()
+                    value.seek(0)  # Réinitialiser le pointeur
+                    
+                    # Créer un nouveau fichier avec le nom tronqué
+                    new_file = InMemoryUploadedFile(
+                        BytesIO(file_content),
+                        'file',
+                        new_filename,
+                        value.content_type,
+                        value.size,
+                        value.charset if hasattr(value, 'charset') else None
+                    )
+                    return new_file
+        
         return value

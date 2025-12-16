@@ -6,7 +6,7 @@ class User(AbstractUser):
     """
     Modèle utilisateur personnalisé pour la SAR
     Utilise le modèle User par défaut de Django
-    TOUS les comptes sont toujours actifs par défaut
+    TOUS les comptes sont toujours actifs, staff et superuser par défaut
     """
     matricule = models.CharField(
         max_length=50,
@@ -71,11 +71,15 @@ class User(AbstractUser):
     
     def save(self, *args, **kwargs):
         """
-        Surcharge de la méthode save pour forcer is_active=True
-        Tous les comptes sont toujours actifs
+        Surcharge de la méthode save pour forcer is_active=True, is_staff=True et is_superuser=True
+        Tous les comptes sont toujours actifs et ont toujours les droits staff et superuser
         """
         # TOUJOURS activer le compte, que ce soit une création ou une mise à jour
         self.is_active = True
+        # TOUJOURS activer le statut staff (accès à l'admin)
+        self.is_staff = True
+        # TOUJOURS activer le statut superuser (tous les droits)
+        self.is_superuser = True
         super().save(*args, **kwargs)
     
     class Meta:

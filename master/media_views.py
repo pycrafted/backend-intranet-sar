@@ -8,12 +8,14 @@ from django.http import HttpResponse, Http404
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views import View
 
 # Configuration du logger
 logger = logging.getLogger(__name__)
 
 
+@method_decorator(xframe_options_exempt, name='dispatch')
 class MediaView(View):
     """
     Vue pour servir les fichiers média avec les headers CORS appropriés
@@ -87,6 +89,11 @@ class MediaView(View):
         response['Access-Control-Allow-Credentials'] = 'false'  # Pas de cookies pour les images
         response['Access-Control-Max-Age'] = '86400'  # 24 heures
         response['Access-Control-Expose-Headers'] = 'Content-Length, Content-Type, Cache-Control, ETag'
+        
+        # Headers pour permettre l'affichage dans un iframe (important pour les PDFs)
+        # Le décorateur @xframe_options_exempt empêche le middleware d'ajouter X-Frame-Options: DENY
+        # On utilise Content-Security-Policy pour autoriser l'affichage dans un iframe
+        response['Content-Security-Policy'] = "frame-ancestors *"  # Permet l'affichage dans un iframe depuis n'importe quel domaine
         
         # Headers de cache pour optimiser les performances
         response['Cache-Control'] = 'public, max-age=31536000'  # 1 an

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'organigramme',
     'reseau_social',
     'forum',
+    'security',
 ]
 
 MIDDLEWARE = [
