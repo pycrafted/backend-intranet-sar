@@ -97,3 +97,6 @@ class PerformanceMiddleware(MiddlewareMixin):
         
         return response
 
+
+
+

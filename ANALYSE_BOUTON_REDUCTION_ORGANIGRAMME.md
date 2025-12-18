@@ -236,3 +236,6 @@ Pour résoudre définitivement le problème, il faudrait :
 2. S'assurer que toutes les dépendances sont correctement déclarées
 3. Peut-être utiliser un système de state management plus robuste (useReducer ou Zustand)
 
+
+
+

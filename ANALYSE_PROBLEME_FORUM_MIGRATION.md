@@ -209,3 +209,6 @@ ORDER BY applied;
 - [Documentation Django - Migrations](https://docs.djangoproject.com/en/stable/topics/migrations/)
 - [Documentation PostgreSQL - ALTER TABLE](https://www.postgresql.org/docs/current/sql-altertable.html)
 
+
+
+

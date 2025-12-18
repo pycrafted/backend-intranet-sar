@@ -1,9 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.contrib.sessions.models import Session
-from django.utils import timezone
-from datetime import timedelta
 from .models import Conversation, Message, Participant, MessageRead
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -209,51 +206,8 @@ class ConversationSerializer(serializers.ModelSerializer):
         return None
     
     def get_online(self, obj):
-        """Détermine si l'autre participant (pour conversations directes) est en ligne"""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        
-        try:
-            # Pour les conversations directes, vérifier le statut de l'autre participant
-            if obj.type == 'direct':
-                other_participants = obj.participants.exclude(id=request.user.id)
-                if other_participants.exists():
-                    other_user = other_participants.first()
-                    return self._is_user_online(other_user)
-            
-            # Pour les groupes, on pourrait retourner False ou implémenter une logique différente
-            return False
-        except Exception as e:
-            print(f"Erreur lors de la vérification du statut en ligne: {e}")
-            return False
-    
-    def _is_user_online(self, user):
-        """Vérifie si un utilisateur a une session active récente"""
-        try:
-            # Récupérer les sessions actives non expirées (limiter à 1000 pour performance)
-            now = timezone.now()
-            active_sessions = Session.objects.filter(
-                expire_date__gt=now
-            )[:1000]  # Limiter pour éviter de charger trop de sessions
-            
-            # Parcourir les sessions pour trouver celle de l'utilisateur
-            for session in active_sessions:
-                try:
-                    session_data = session.get_decoded()
-                    # Django stocke l'ID utilisateur dans '_auth_user_id' dans la session
-                    user_id = session_data.get('_auth_user_id')
-                    if user_id and str(user_id) == str(user.id):
-                        # Une session active non expirée signifie que l'utilisateur est en ligne
-                        return True
-                except Exception:
-                    # Ignorer les sessions corrompues
-                    continue
-            
-            return False
-        except Exception as e:
-            print(f"Erreur lors de la vérification de la session pour l'utilisateur {user.id}: {e}")
-            return False
+        """Statut en ligne (toujours False pour l'instant, peut être amélioré plus tard)"""
+        return False
 
 
 class ConversationCreateSerializer(serializers.ModelSerializer):

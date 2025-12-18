@@ -85,3 +85,6 @@ Write-Host ""
 Write-Host "Exécutez maintenant: python test_redis.py" -ForegroundColor Yellow
 Write-Host ""
 
+
+
+

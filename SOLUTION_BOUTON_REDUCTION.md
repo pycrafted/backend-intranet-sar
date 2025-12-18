@@ -181,3 +181,6 @@ Cette approche :
 2. **PRIORITÉ 2** : Stabiliser toggleNodeExpansion avec useRef
 3. **PRIORITÉ 3** : S'assurer que expansionVersion est bien dans les dépendances
 
+
+
+

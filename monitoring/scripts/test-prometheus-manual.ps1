@@ -61,3 +61,6 @@ Write-Host "  2. Il faut augmenter le timeout du service" -ForegroundColor White
 Write-Host "  3. Ou utiliser NSSM qui gere mieux les services qui prennent du temps" -ForegroundColor White
 
 
+
+
+

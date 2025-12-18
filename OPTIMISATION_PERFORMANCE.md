@@ -220,3 +220,6 @@ const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
 5. ⏳ Implémenter la pagination partout où nécessaire
 6. ⏳ Optimiser les images (compression, lazy loading)
 
+
+
+
