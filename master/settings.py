@@ -202,11 +202,11 @@ CSRF_COOKIE_SECURE = False  # HTTP en développement
 
 # Configuration des sessions
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 86400  # 24 heures (86400 secondes = 24h)
+SESSION_COOKIE_AGE = 604800  # 7 jours (604800 secondes = 7 * 24 * 60 * 60)
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = False  # HTTP en développement
-SESSION_SAVE_EVERY_REQUEST = True  # Sauvegarder la session à chaque requête
+SESSION_SAVE_EVERY_REQUEST = True  # Sauvegarder la session à chaque requête pour prolonger automatiquement
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Ne pas expirer à la fermeture du navigateur
 # SESSION_COOKIE_DOMAIN = None  # Par défaut, le domaine est celui de la requête
 

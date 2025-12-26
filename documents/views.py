@@ -51,6 +51,16 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         logger.info(f"📄 [DOCUMENTS_API] POST /documents/ - Origin: {request.META.get('HTTP_ORIGIN', 'Unknown')}")
         logger.info(f"📄 [DOCUMENTS_API] Headers: {dict(request.META)}")
         logger.info(f"📄 [DOCUMENTS_API] Files: {list(request.FILES.keys()) if request.FILES else 'None'}")
+        
+        # Vérifier l'authentification pour l'upload
+        if not (hasattr(request, 'user') and request.user.is_authenticated):
+            logger.warning(f"📄 [DOCUMENTS_API] Upload refusé - Utilisateur non authentifié")
+            return Response(
+                {'error': 'Vous devez être connecté pour uploader un document'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        logger.info(f"📄 [DOCUMENTS_API] Utilisateur authentifié: {request.user.username} (ID: {request.user.id})")
         response = super().post(request, *args, **kwargs)
         # Ajouter les headers CORS
         response['Access-Control-Allow-Origin'] = '*'
@@ -73,10 +83,26 @@ class DocumentListCreateView(generics.ListCreateAPIView):
         return DocumentSerializer
     
     def create(self, request, *args, **kwargs):
-        """Override create pour gérer l'upload"""
+        """Override create pour gérer l'upload et retourner le document complet"""
         try:
-            return super().create(request, *args, **kwargs)
+            # Utiliser super().create() qui appelle automatiquement perform_create()
+            response = super().create(request, *args, **kwargs)
+            
+            # Récupérer le document créé depuis la réponse
+            document_id = response.data.get('id')
+            if document_id:
+                document = Document.objects.get(id=document_id)
+                # Retourner le document avec le serializer complet qui inclut uploaded_by_name
+                response_serializer = DocumentSerializer(document, context={'request': request})
+                return Response(
+                    response_serializer.data,
+                    status=status.HTTP_201_CREATED,
+                    headers=response.headers if hasattr(response, 'headers') else {}
+                )
+            
+            return response
         except Exception as e:
+            logger.error(f"📄 [DOCUMENTS_API] Erreur lors de la création: {str(e)}")
             raise
     
     def get_queryset(self):
@@ -143,20 +169,16 @@ class DocumentListCreateView(generics.ListCreateAPIView):
             except (ValueError, TypeError):
                 pass
         
-        # Utilisateur temporaire (authentification désactivée)
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        default_user = User.objects.first()  # Prendre le premier utilisateur disponible
+        # Utiliser l'utilisateur authentifié
+        if hasattr(self.request, 'user') and self.request.user.is_authenticated:
+            uploaded_by = self.request.user
+            logger.info(f"📄 [DOCUMENTS_API] Utilisation de l'utilisateur authentifié: {uploaded_by.username} (ID: {uploaded_by.id}, Nom: {uploaded_by.get_full_name()})")
+        else:
+            # Si l'utilisateur n'est pas authentifié (ne devrait pas arriver car on vérifie dans post())
+            logger.error(f"📄 [DOCUMENTS_API] ERREUR: Utilisateur non authentifié dans perform_create")
+            raise serializers.ValidationError("Vous devez être connecté pour uploader un document")
         
-        if not default_user:
-            # Créer un utilisateur par défaut si aucun n'existe
-            default_user = User.objects.create_user(
-                username='admin',
-                email='admin@example.com',
-                password='admin123'
-            )
-        
-        serializer.save(uploaded_by=default_user, file_size=file_size, category=category, folder=folder)
+        serializer.save(uploaded_by=uploaded_by, file_size=file_size, category=category, folder=folder)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):

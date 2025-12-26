@@ -4,7 +4,10 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q, Count
+import logging
 from .models import SafetyData, Idea, MenuItem, DayMenu, Event, Department, Project
+
+logger = logging.getLogger(__name__)
 from .serializers import (
     SafetyDataSerializer, 
     SafetyDataCreateUpdateSerializer,
@@ -244,18 +247,53 @@ class IdeaDeleteAPIView(generics.DestroyAPIView):
 def idea_submit(request):
     """
     API endpoint pour soumettre une nouvelle idée
+    Envoie automatiquement un email au chef de département
     """
+    logger.info("📝 [IDEA_SUBMIT] Nouvelle soumission d'idée reçue")
     try:
         serializer = IdeaCreateSerializer(data=request.data)
         
         if serializer.is_valid():
             idea = serializer.save()
+            logger.info(f"✅ [IDEA_SUBMIT] Idée #{idea.id} créée avec succès pour le département: {idea.department.name}")
+            
+            # Envoyer un email au chef de département de manière anonyme
+            try:
+                from .email_service import send_idea_email
+                
+                department = idea.department
+                recipient_emails = department.get_emails_list()
+                
+                logger.info(f"📧 [IDEA_SUBMIT] Tentative d'envoi d'email pour l'idée #{idea.id}")
+                logger.info(f"   Département: {department.name}")
+                logger.info(f"   Emails destinataires: {recipient_emails if recipient_emails else 'Aucun email configuré'}")
+                
+                if recipient_emails:
+                    email_sent = send_idea_email(
+                        idea_description=idea.description,
+                        department_name=department.name,
+                        recipient_emails=recipient_emails,
+                        idea_id=idea.id
+                    )
+                    
+                    if email_sent:
+                        logger.info(f"✅ [IDEA_SUBMIT] Email envoyé avec succès pour l'idée #{idea.id} au département {department.name}")
+                    else:
+                        logger.warning(f"⚠️  [IDEA_SUBMIT] Échec de l'envoi d'email pour l'idée #{idea.id}")
+                else:
+                    logger.warning(f"⚠️  [IDEA_SUBMIT] Aucun email configuré pour le département {department.name} (id: {department.id})")
+            except Exception as email_error:
+                # Ne pas faire échouer la soumission si l'email échoue
+                logger.error(f"❌ [IDEA_SUBMIT] Erreur lors de l'envoi de l'email pour l'idée #{idea.id}: {email_error}", exc_info=True)
+            
             response_serializer = IdeaSerializer(idea)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         else:
+            logger.warning(f"⚠️  [IDEA_SUBMIT] Données invalides: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     except Exception as e:
+        logger.error(f"❌ [IDEA_SUBMIT] Erreur lors de la soumission de l'idée: {e}", exc_info=True)
         return Response(
             {'error': f'Erreur lors de la soumission de l\'idée: {str(e)}'}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

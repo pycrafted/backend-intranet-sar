@@ -81,3 +81,6 @@ python manage.py activate_staff_superuser_all --dry-run
 - Les utilisateurs déjà configurés ne sont pas modifiés
 - Le script affiche un résumé des modifications effectuées
 
+
+
+

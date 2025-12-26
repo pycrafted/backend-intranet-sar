@@ -216,9 +216,11 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Configuration des sessions
-SESSION_COOKIE_AGE = 3600  # 1 heure
-SESSION_SAVE_EVERY_REQUEST = False
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 604800  # 7 jours (604800 secondes = 7 * 24 * 60 * 60)
+SESSION_SAVE_EVERY_REQUEST = True  # Sauvegarder à chaque requête pour prolonger la session
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Ne pas expirer à la fermeture du navigateur
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
 
 # ========================================
 # PERFORMANCE ET OPTIMISATION

@@ -624,9 +624,9 @@ class DepartmentAdmin(admin.ModelAdmin):
         ('Informations de base', {
             'fields': ('code', 'name', 'is_active')
         }),
-        ('Emails', {
+        ('Emails du chef de département', {
             'fields': ('emails',),
-            'description': 'Liste des emails associés au département (format JSON: ["email1@example.com", "email2@example.com"])'
+            'description': 'Liste des emails qui recevront automatiquement les idées soumises pour ce département (format JSON: ["email1@example.com", "email2@example.com"]). Les emails sont envoyés de manière anonyme depuis notification@sar.sn.'
         }),
         ('Métadonnées', {
             'fields': ('created_at', 'updated_at'),
