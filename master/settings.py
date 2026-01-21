@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'reseau_social',
     'forum',
     'security',
+    'metriques',
 ]
 
 MIDDLEWARE = [
@@ -187,25 +188,47 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+# Configuration pour détecter HTTPS derrière un proxy (IIS/ARR)
+# Django détectera automatiquement HTTPS via le header X-Forwarded-Proto
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Utiliser le header X-Forwarded-Host pour construire les URLs correctes
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 # Configuration CSRF pour les origines de confiance
 # Utilise FRONTEND_URL depuis les variables d'environnement
 # Note: 127.0.0.1 peut être ajouté via la variable d'environnement si nécessaire
-CSRF_TRUSTED_ORIGINS = config(
+csrf_origins = config(
     'CSRF_TRUSTED_ORIGINS',
     default=FRONTEND_URL
 ).split(',')
+# S'assurer que les origines HTTPS sont incluses
+csrf_origins_list = [origin.strip() for origin in csrf_origins if origin.strip()]
+# Ajouter automatiquement le domaine HTTPS si FRONTEND_URL est en HTTPS
+if FRONTEND_URL.startswith('https://'):
+    if FRONTEND_URL not in csrf_origins_list:
+        csrf_origins_list.append(FRONTEND_URL)
+# Ajouter sar-intranet.sar.sn si pas déjà présent
+if 'https://sar-intranet.sar.sn' not in csrf_origins_list:
+    csrf_origins_list.append('https://sar-intranet.sar.sn')
+CSRF_TRUSTED_ORIGINS = csrf_origins_list
 
 # Configuration CSRF pour les cookies
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = False  # Permettre l'accès depuis JavaScript
-CSRF_COOKIE_SECURE = False  # HTTP en développement
+# Activer les cookies sécurisés si on est derrière un proxy HTTPS
+# Django détectera automatiquement HTTPS via SECURE_PROXY_SSL_HEADER
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
 
 # Configuration des sessions
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 604800  # 7 jours (604800 secondes = 7 * 24 * 60 * 60)
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = False  # HTTP en développement
+# Activer les cookies sécurisés si on est derrière un proxy HTTPS
+# Django détectera automatiquement HTTPS via SECURE_PROXY_SSL_HEADER
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
 SESSION_SAVE_EVERY_REQUEST = True  # Sauvegarder la session à chaque requête pour prolonger automatiquement
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Ne pas expirer à la fermeture du navigateur
 # SESSION_COOKIE_DOMAIN = None  # Par défaut, le domaine est celui de la requête

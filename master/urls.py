@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/reseau-social/', include('reseau_social.urls')),
     path('api/forum/', include('forum.urls')),
     path('api/security/', include('security.urls')),
+    path('api/metriques/', include('metriques.urls')),
     # URL pour servir les fichiers média avec CORS
     path('media/<path:path>', MediaView.as_view(), name='media'),
 ]

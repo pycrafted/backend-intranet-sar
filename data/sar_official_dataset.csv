@@ -2061,6 +2061,48 @@
 "Quel est le taux de réalisation des actions indiqué dans le rapport n°17 ?","Le taux de réalisation est de 0."
 "Quel est l'état de l'audit indiqué dans le rapport n°17 ?","L'état de l'audit est 'REALISE'."
 "Quel est le type de l'audit indiqué dans le rapport n°17 ?","Le type est 'Audit Interne Qualité'."
+"Comment planifier une réunion dans QualiPro ?","Module Réunion – Planification d'une Réunion 
+Pour planifier une réunion, il faut :
+1. Accéder à Réunions / Réunion.
+2. Appuyer sur le bouton « Ajouter ».
+3. Remplir la fiche réunion (champs : Date prévisionnelle, type de réunion, date, lieu, ordre du jour…).
+4. Appuyer sur le bouton « Valider ».
+5. Introduire la liste des invités à la réunion.
+6. Appuyer à nouveau sur le bouton « Valider »."
+"Quelle est la procédure pour créer une réunion dans QualiPro  ?","Module Réunion – Planification d'une Réunion
+Pour planifier une réunion, il faut :
+1. Accéder à Réunions / Réunion.
+2. Appuyer sur le bouton « Ajouter ».
+3. Remplir la fiche réunion (champs : Date prévisionnelle, type de réunion, date, lieu, ordre du jour…).
+4. Appuyer sur le bouton « Valider ».
+5. Introduire la liste des invités à la réunion.
+6. Appuyer à nouveau sur le bouton « Valider »."
+"Comment créer une réunion dans le système QUALIPRO ?","Module Réunion – Planification d'une Réunion
+Pour planifier une réunion, il faut :
+1. Accéder à Réunions / Réunion.
+2. Appuyer sur le bouton « Ajouter ».
+3. Remplir la fiche réunion (champs : Date prévisionnelle, type de réunion, date, lieu, ordre du jour…).
+4. Appuyer sur le bouton « Valider ».
+5. Introduire la liste des invités à la réunion.
+6. Appuyer à nouveau sur le bouton « Valider »."
+"Étapes pour planifier une réunion dans QualiPro ","Module Réunion – Planification d'une Réunion
+Pour planifier une réunion, il faut :
+1. Accéder à Réunions / Réunion.
+2. Appuyer sur le bouton « Ajouter ».
+3. Remplir la fiche réunion (champs : Date prévisionnelle, type de réunion, date, lieu, ordre du jour…).
+4. Appuyer sur le bouton « Valider ».
+5. Introduire la liste des invités à la réunion.
+6. Appuyer à nouveau sur le bouton « Valider »."
+"Procédure de planification de réunion dans QualiPro ","Module Réunion – Planification d'une Réunion
+
+Pour planifier une réunion, il faut :
+
+1. Accéder à Réunions / Réunion.
+2. Appuyer sur le bouton « Ajouter ».
+3. Remplir la fiche réunion (champs : Date prévisionnelle, type de réunion, date, lieu, ordre du jour…).
+4. Appuyer sur le bouton « Valider ».
+5. Introduire la liste des invités à la réunion.
+6. Appuyer à nouveau sur le bouton « Valider »."
 "Quel est le site concerné par l'audit n°17 ?","Le site concerné est 'SAR'."
 "Quels types de rapports sont disponibles dans la section Reporting du module Audits ?","Les rapports disponibles incluent : la liste des auditeurs, la liste des audits par état, le programme annuel, le taux de charge par auditeur, l'état des audits par type, et le nombre moyen de constats par champ."
 "Comment accéder à la section Reporting pour les audits ?","Il faut aller dans le menu principal, ouvrir le menu déroulant du reporting, puis sélectionner 'Audits'."

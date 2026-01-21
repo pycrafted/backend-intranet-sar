@@ -1,0 +1,32 @@
+# =============================================================================
+# Exemple de fichier systemd service pour Gunicorn (Linux)
+# =============================================================================
+# Pour utiliser ce fichier sur Linux:
+# 1. Copiez-le vers /etc/systemd/system/gunicorn-sar-backend.service
+# 2. Ajustez les chemins selon votre installation
+# 3. Activez le service: sudo systemctl enable gunicorn-sar-backend
+# 4. Démarrez le service: sudo systemctl start gunicorn-sar-backend
+# =============================================================================
+
+[Unit]
+Description=Gunicorn instance pour SAR Backend
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/backend-intranet-sar
+Environment="PATH=/path/to/backend-intranet-sar/venv/bin"
+Environment="DJANGO_SETTINGS_MODULE=master.settings"
+ExecStart=/path/to/backend-intranet-sar/venv/bin/gunicorn \
+    --config /path/to/backend-intranet-sar/gunicorn_config.py \
+    master.wsgi:application
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+
+
+
