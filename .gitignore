@@ -525,4 +525,6 @@ $RECYCLE.BIN/
 .fuse_hidden*
 .directory
 .Trash-*
-.nfs*
+.nfs*.env.dev
+
+.env.dev
